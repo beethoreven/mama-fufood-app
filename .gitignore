@@ -1,0 +1,61 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Widget Preview related
+.widget_preview/
+
+# 每個人自己的後端網址與 Google 用戶端 ID(格式見 env/prod.example.json)
+/env/prod.json
+
+# 產生 App 圖示與啟動畫面用的原圖(設計檔,只在本機;產生出來的圖在 android/app/src/main/res/,那些要進 git)
+/assets/icon/
+
+# 畫面測試:真字型的截圖只給人看(test/ui/layout/layout_test.dart),比對失敗時的差異圖
+/test/ui/layout/shots/
+failures/
+
+# 本機開發工具的個人設定(每台機器不一樣,不該共用)。
+.claude/settings.local.json

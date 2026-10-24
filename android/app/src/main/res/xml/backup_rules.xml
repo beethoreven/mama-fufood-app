@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 的自動備份規則(SPEC 第 13 節):只備份紀錄資料庫與設定(files/db/)。
+     照片、診斷記錄、待送的意見回饋、安裝 ID 都不備份;照片要靠「照片存到雲端」保護。 -->
+<full-backup-content>
+    <include domain="file" path="db/" />
+</full-backup-content>

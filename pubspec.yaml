@@ -1,0 +1,93 @@
+name: mama_fufood
+description: "媽媽記副食品:寶寶副食品紀錄"
+publish_to: 'none'
+
+# 版本規則見 SPEC_DRAFT.md 第 2 節:x.y.z,x 只在匯出格式改變時動。
+# + 後面是 Android 的版本碼 = x×1000 + y×10 + z(dart run tool/check_version.dart 檢查)。
+version: 1.0.0+1000
+
+# 版本一律釘在當下最新的正式版(2026-10-23 查 pub.dev)。Flutter 也釘在 3.47.7。
+environment:
+  sdk: ^3.13.5
+  flutter: 3.47.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  # 系統內建的元件(授權頁、文字選取選單)要顯示繁體中文。
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: 3.4.3
+  drift: 2.35.2
+  drift_flutter: 0.3.1
+  path_provider: 2.1.6
+  path: 1.9.1
+  google_sign_in: 7.2.0
+  googleapis: 17.0.0
+  googleapis_auth: 2.3.5
+  http: 1.6.0
+  cryptography: 2.9.0
+  cryptography_flutter: 2.3.4
+  archive: 4.5.2
+  uuid: 4.6.0
+  image_picker: 1.2.4
+  flutter_image_compress: 2.5.1
+  file_picker: 13.1.0
+  package_info_plus: 10.2.2
+  # 機型、電量、網路類型、儲存空間這些除錯資訊由 App 自己的原生程式取得
+  # (android/.../DiagnosticsChannel.kt),不另外裝 device_info_plus、battery_plus、
+  # connectivity_plus:後兩者的最新版互相衝突(2026-10-23),而且自己取得的欄位剛好是需要的那些。
+  material_symbols_icons: 4.2960.0
+  flutter_markdown_plus: 1.0.12
+  characters: 1.4.1
+  collection: 1.19.1
+  crypto: 3.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: 6.0.0
+  drift_dev: 2.35.1
+  # 最新是 2.17.1,但它要 build 5,而 drift_dev 2.35.1(最新)還只支援 build 4;
+  # 2.17.0 已被撤回,所以停在 2.16.2(2026-10-23)。drift_dev 支援 build 5 之後就升回最新。
+  build_runner: 2.16.2
+  flutter_launcher_icons: 0.14.4
+  flutter_native_splash: 2.4.8
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/datasets/
+    - assets/texts/
+    # 字型的授權全文:SIL OFL 1.1 規定散布字型時要附上,lib/core/licenses.dart 把它登記到
+    # App 的「開放原始碼授權」頁。只列這個檔,不要列整個 assets/fonts/(字型檔會被重複打包)。
+    - assets/fonts/OFL.txt
+  fonts:
+    # Noto Sans TC(SIL Open Font License 1.1)。可變字型,字重由 lib/ui/theme.dart 的 wght 軸設定。
+    - family: NotoSansTC
+      fonts:
+        - asset: assets/fonts/NotoSansTC-Variable.ttf
+
+# App 圖示:dart run flutter_launcher_icons
+# 原圖在 assets/icon/,只在本機、不進 git,也不打包進 App;產生出來的圖在 android/app/src/main/res/(進 git)。
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: assets/icon/icon_1024.png
+  adaptive_icon_background: "#8EC9F5"
+  adaptive_icon_foreground: assets/icon/adaptive_foreground_1024.png
+  adaptive_icon_monochrome: assets/icon/adaptive_monochrome_1024.png
+  min_sdk_android: 30
+
+# 啟動畫面(DESIGN_SYSTEM.md「啟動畫面」):只放圖示,深色底。
+# dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#12161D"
+  image: assets/icon/splash_round_1152.png
+  android_12:
+    color: "#12161D"
+    image: assets/icon/adaptive_foreground_1024.png
+    icon_background_color: "#8EC9F5"
+  ios: false
+  web: false
+  fullscreen: false
