@@ -71,7 +71,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
     final go = await showDialog<bool>(
       context: ctx,
       builder: (c) => AlertDialog(
-        content: const Text('App 上次意外關閉,要送出意見回饋告訴我們嗎?'),
+        content: const Text('App 上次意外關閉，要送出意見回饋告訴我們嗎？'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('不要')),
           FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('要')),
@@ -89,7 +89,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
         await showDialog(
           context: c2,
           builder: (c) => AlertDialog(
-            content: const Text('如果問題持續發生,可點選右上角選單中的「意見回饋」提交問題,我們會嘗試進行修正。'),
+            content: const Text('如果問題持續發生，可點選右上角選單中的「意見回饋」提交問題，我們會嘗試進行修正。'),
             actions: [FilledButton(onPressed: () => Navigator.pop(c), child: const Text('好'))],
           ),
         );
@@ -108,7 +108,7 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
       final name = await askBabyName(ctx,
           title: '第一個寶寶',
           dismissible: false,
-          help: '請輸入你要記錄的第一個寶寶名稱,本名或乳名等等都可以,這個名字只有你自己會看到喔。');
+          help: '請輸入你要記錄的第一個寶寶名稱，本名或乳名等等都可以，這個名字只有你自己會看到喔。');
       if (name == null) continue;
       try {
         final baby = await store.addBaby(name);
@@ -188,10 +188,10 @@ class _ForceUpdatePage extends StatelessWidget {
               Text('這個版本需要更新才能繼續使用。', style: t.bodyLarge),
               if (reason.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                Text('原因:$reason', style: t.bodyLarge),
+                Text('原因：$reason', style: t.bodyLarge),
               ],
               const SizedBox(height: 16),
-              Text(url.isEmpty ? '請向提供 App 的人取得新版本。' : '新版本:$url', style: t.bodyMedium),
+              Text(url.isEmpty ? '請向提供 App 的人取得新版本。' : '新版本：$url', style: t.bodyMedium),
             ]),
           ),
         ),

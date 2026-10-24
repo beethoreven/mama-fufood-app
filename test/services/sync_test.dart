@@ -79,7 +79,7 @@ void main() {
     TimeRules.now = () => clock = clock.add(const Duration(seconds: 1));
   });
 
-  test('一支手機:上傳、確認後清掉暫存;再同步不重傳', () async {
+  test('一支手機：上傳、確認後清掉暫存；再同步不重傳', () async {
     final cloud = FakeCloud();
     final a = Phone(cloud);
     await a.enable();
@@ -95,7 +95,7 @@ void main() {
     expect(cloud.files.length, writes);
   });
 
-  test('第二支手機:第一次同步把雲端的寶寶與紀錄拉下來', () async {
+  test('第二支手機：第一次同步把雲端的寶寶與紀錄拉下來', () async {
     final cloud = FakeCloud();
     final a = Phone(cloud);
     await a.enable();
@@ -114,7 +114,7 @@ void main() {
     expect(b.asked, 0);
   });
 
-  test('沒有衝突的修改自動合併;同一筆兩邊都改 → 交給使用者選(每筆保留較新的)', () async {
+  test('沒有衝突的修改自動合併；同一筆兩邊都改 → 交給使用者選（每筆保留較新的）', () async {
     final cloud = FakeCloud();
     final a = Phone(cloud), b = Phone(cloud);
     await a.enable();
@@ -135,7 +135,7 @@ void main() {
       expect(notes[r1.id], 'A 改了第一筆');
       expect(notes[r2.id], 'B 改了第二筆');
     }
-    expect(a.asked + b.asked, 0, reason: '改的是不同筆,沒有衝突');
+    expect(a.asked + b.asked, 0, reason: '改的是不同筆，沒有衝突');
 
     await a.edit(r1.id, 'A 先改');
     await b.edit(r1.id, 'B 後改');
@@ -158,13 +158,13 @@ void main() {
     await b.sync.syncNow(reason: 'test');
     await a.edit(r.id, '雲端的');
     await a.sync.syncNow(reason: 'test');
-    await b.edit(r.id, '手機的(比較新)');
+    await b.edit(r.id, '手機的（比較新）');
     b.answer = ConflictChoice.cloudWins;
     await b.sync.syncNow(reason: 'test');
     expect((await b.all(baby.seq)).single.note, '雲端的');
   });
 
-  test('刪除用標記,同步後不會「復活」', () async {
+  test('刪除用標記，同步後不會「復活」', () async {
     final cloud = FakeCloud();
     final a = Phone(cloud), b = Phone(cloud);
     await a.enable();
@@ -182,7 +182,7 @@ void main() {
     expect(await a.all(baby.seq), isEmpty);
   });
 
-  test('斷網時同步失敗,手機上的資料一筆都不少,恢復後補上傳', () async {
+  test('斷網時同步失敗，手機上的資料一筆都不少，恢復後補上傳', () async {
     final cloud = FakeCloud();
     final a = Phone(cloud);
     await a.enable();
@@ -199,7 +199,7 @@ void main() {
     expect(await a.dirty(), 0);
   });
 
-  test('雲端的檔案不見了(例如刪了 App 的隱藏資料):不刪手機上的,重新傳上去', () async {
+  test('雲端的檔案不見了（例如刪了 App 的隱藏資料）：不刪手機上的，重新傳上去', () async {
     final cloud = FakeCloud();
     final a = Phone(cloud);
     await a.enable();
@@ -212,7 +212,7 @@ void main() {
     expect(cloud.files.values.where((f) => f.name.startsWith(CloudNames.recordPrefix)).length, 1);
   });
 
-  test('兩支手機離線時各自新增寶寶撞號:後到的自動改用下一個沒用過的序號', () async {
+  test('兩支手機離線時各自新增寶寶撞號：後到的自動改用下一個沒用過的序號', () async {
     final cloud = FakeCloud();
     final a = Phone(cloud), b = Phone(cloud);
     await a.enable();
@@ -232,7 +232,7 @@ void main() {
     expect((await a.all(2)).single.note, '二寶的紀錄');
   });
 
-  test('多筆衝突選「關閉雲端同步記錄」:關掉開關,手機上的資料不動', () async {
+  test('多筆衝突選「關閉雲端同步記錄」：關掉開關，手機上的資料不動', () async {
     final cloud = FakeCloud();
     final a = Phone(cloud), b = Phone(cloud);
     await a.enable();

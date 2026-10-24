@@ -54,7 +54,7 @@ class _StatsTabState extends ConsumerState<StatsTab> {
             },
           ),
           PickerButton(
-            text: _month == null ? '月:不指定' : '$_month 月',
+            text: _month == null ? '月：不指定' : '$_month 月',
             onTap: () async {
               final m = await showWheelPicker<int>(context,
                   title: '月', items: [0, for (var m = 1; m <= 12; m++) m], initial: _month ?? 0, label: (m) => m == 0 ? '不指定' : '$m 月');
@@ -69,7 +69,7 @@ class _StatsTabState extends ConsumerState<StatsTab> {
           ),
           PickerButton(
             enabled: _month != null,
-            text: _day == null ? '日:不指定' : '$_day 日',
+            text: _day == null ? '日：不指定' : '$_day 日',
             onTap: () async {
               final d = await showWheelPicker<int>(context,
                   title: '日', items: [0, for (var d = 1; d <= daysInMonth; d++) d], initial: _day ?? 0, label: (d) => d == 0 ? '不指定' : '$d 日');
@@ -80,7 +80,7 @@ class _StatsTabState extends ConsumerState<StatsTab> {
       ),
       Expanded(
         child: async.hasError
-            ? Center(child: Text('讀取紀錄失敗,請重新開啟 App', style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: c.danger)))
+            ? Center(child: Text('讀取紀錄失敗，請重新開啟 App', style: Theme.of(context).textTheme.bodyMedium!.copyWith(color: c.danger)))
             : !async.hasValue
             ? const Center(child: CircularProgressIndicator())
             : stats.isEmpty

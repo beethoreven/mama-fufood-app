@@ -89,9 +89,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         SwitchListTile(
           title: const Text('紀錄與雲端同步'),
           subtitle: Text(paused
-              ? '已暫停(未登入)'
+              ? '已暫停（未登入）'
               : settings.syncRecords
-                  ? '最後同步:${fmt(lastSync)}${syncError != null ? '(上次失敗,稍後自動重試)' : ''}'
+                  ? '最後同步：${fmt(lastSync)}${syncError != null ? '（上次失敗，稍後自動重試）' : ''}'
                   : '存到你自己的 Google 雲端硬碟中只有本 App 能讀取的區域'),
           value: settings.syncRecords,
           onChanged: _toggling
@@ -107,7 +107,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
         SwitchListTile(
           title: const Text('照片存到雲端'),
-          subtitle: Text(paused ? '已暫停(未登入)' : '存到你的雲端硬碟「媽媽記副食品/照片」資料夾,上傳成功後才刪掉手機上的照片'),
+          subtitle: Text(paused ? '已暫停（未登入）' : '存到你的雲端硬碟「媽媽記副食品/照片」資料夾，上傳成功後才刪掉手機上的照片'),
           value: settings.syncPhotos,
           onChanged: _toggling
               ? null
@@ -123,7 +123,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         // 規格要求寫死的提醒(SPEC 第 4 節)。
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Text('只開「照片存到雲端」、沒開「紀錄與雲端同步」時,手機遺失後照片會留在你的雲端硬碟,但對應的紀錄會遺失。',
+          child: Text('只開「照片存到雲端」、沒開「紀錄與雲端同步」時，手機遺失後照片會留在你的雲端硬碟，但對應的紀錄會遺失。',
               style: Theme.of(context).textTheme.bodySmall!.copyWith(color: c.warn)),
         ),
         if (settings.syncRecords && user != null)
@@ -133,7 +133,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             onTap: () async {
               await services.sync.syncNow(reason: 'manual');
               if (!context.mounted) return;
-              toast(context, services.sync.state == SyncState.ok ? '同步完成' : '同步沒有成功,稍後會自動重試');
+              toast(context, services.sync.state == SyncState.ok ? '同步完成' : '同步沒有成功，稍後會自動重試');
             },
           ),
       ]),
@@ -141,13 +141,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ListTile(
           title: const Text('食材清單與單位'),
           subtitle: Text('需要登入 Google 才能更新公用資料。\n'
-              '食材清單 ${catalog?.foodVersion ?? '-'}、單位 ${catalog?.unitVersion ?? '-'}\n最後檢查:${fmt(lastCheck)}'),
+              '食材清單 ${catalog?.foodVersion ?? '-'}、單位 ${catalog?.unitVersion ?? '-'}\n最後檢查：${fmt(lastCheck)}'),
           isThreeLine: true,
         ),
         ListTile(
           title: const Text('檢查更新'),
           subtitle: Text(Env.backendConfigured
-              ? '每天最多 10 次${raw[CheckKeys.checksLeft]?.isNotEmpty == true ? ',今天還有 ${raw[CheckKeys.checksLeft]} 次' : ''}'
+              ? '每天最多 10 次${raw[CheckKeys.checksLeft]?.isNotEmpty == true ? '，今天還有 ${raw[CheckKeys.checksLeft]} 次' : ''}'
               : '這個版本還沒設定後端網址'),
           trailing: _checking
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
@@ -166,7 +166,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ListTile(title: const Text('App 版本'), subtitle: Text('${services.appVersion}(${services.buildNumber})')),
         ListTile(
           title: const Text('開放原始碼授權'),
-          subtitle: const Text('本 App 使用的套件與字型(Noto Sans TC 等)的授權條款'),
+          subtitle: const Text('本 App 使用的套件與字型（Noto Sans TC 等）的授權條款'),
           trailing: const Icon(Icons.chevron_right_rounded),
           onTap: () => showLicensePage(
             context: context,
@@ -177,9 +177,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       ]),
       if (kDebugMode)
         // 除錯工具只在 debug 版出現;release 版在編譯時就被移除(SPEC 第 2 節)。
-        section('除錯工具(只有 debug 版)', [
-          ListTile(title: const Text('故意當機(Dart)'), onTap: () => throw StateError('debug crash')),
-          ListTile(title: const Text('故意當機(原生層)'), onTap: PlatformInfo.debugCrashNative),
+        section('除錯工具（只有 debug 版）', [
+          ListTile(title: const Text('故意當機（Dart）'), onTap: () => throw StateError('debug crash')),
+          ListTile(title: const Text('故意當機（原生層）'), onTap: PlatformInfo.debugCrashNative),
           ListTile(title: const Text('故意無回應'), onTap: PlatformInfo.debugHangMainThread),
         ]),
       const DisclaimerText(Disclaimers.general),

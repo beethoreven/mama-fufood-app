@@ -181,14 +181,14 @@ class FeedbackService {
     final items = <(String, String)>[
       ('類型', kind.label),
       ('描述', '${charCount(description.trim())} 字'),
-      ('你的 Email', '從登入的 Google 帳號取得,用來回覆你'),
+      ('你的 Email', '從登入的 Google 帳號取得，用來回覆你'),
       ('App 版本', '${appVersion()}(${buildNumber()})'),
       ('手機', '${body['device_model']},${body['os_version']}'),
-      ('設定摘要', '寶寶 ${summary['babies']} 個、紀錄 ${summary['records']} 筆、照片 ${summary['photos']} 張(只有數量)'),
+      ('設定摘要', '寶寶 ${summary['babies']} 個、紀錄 ${summary['records']} 筆、照片 ${summary['photos']} 張（只有數量）'),
       if (kind == FeedbackKind.problem) ...[
         ('手機狀態', '剩餘空間、電量、網路類型等'),
         ('雲端狀態', '同步是否成功、最後一次檢查的結果'),
-        ('記錄檔', '最近 7 天的使用記錄與當機資訊,壓縮後 ${(logBytes / 1024).toStringAsFixed(1)} KB;不含寶寶名稱、備註與紀錄內容'),
+        ('記錄檔', '最近 7 天的使用記錄與當機資訊，壓縮後 ${(logBytes / 1024).toStringAsFixed(1)} KB；不含寶寶名稱、備註與紀錄內容'),
       ],
     ];
     return FeedbackDraft(kind: kind, description: description, body: body, items: items);
@@ -218,7 +218,7 @@ class FeedbackService {
   /// 確認送出。沒有網路(或伺服器暫時不能用)就放進待送清單。
   Future<FeedbackOutcome> submit(FeedbackDraft draft) async {
     if (await usedToday() >= Limits.feedbackPerDay) {
-      throw const ApiError(429, 'daily_limit', '今天的意見回饋已經送了 ${Limits.feedbackPerDay} 則,明天會自動恢復');
+      throw const ApiError(429, 'daily_limit', '今天的意見回饋已經送了 ${Limits.feedbackPerDay} 則，明天會自動恢復');
     }
     try {
       final res = await api.feedback(draft.body);

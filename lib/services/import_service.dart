@@ -86,9 +86,9 @@ class ImportService {
     if (parsed == null) throw const ImportProblem('這不是媽媽記副食品的匯出檔。');
     final header = parsed.$1;
     if (_cmp(header.appVersion, appVersion()) > 0) {
-      throw const ImportProblem('這個檔案是用較新版本的 App 匯出的,請先更新 App 再匯入。');
+      throw const ImportProblem('這個檔案是用較新版本的 App 匯出的，請先更新 App 再匯入。');
     }
-    if (header.cipher != MffCrypto.cipherName) throw const ImportProblem('檔案損壞或被修改過,無法匯入。');
+    if (header.cipher != MffCrypto.cipherName) throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
     return header;
   }
 
@@ -105,14 +105,14 @@ class ImportService {
       } on CloudError catch (e) {
         throw ImportProblem(e.message);
       }
-      if (key == null) throw const ImportProblem('請用匯出這個檔案時的 Google 帳號登入,才能匯入。');
+      if (key == null) throw const ImportProblem('請用匯出這個檔案時的 Google 帳號登入，才能匯入。');
 
       progress?.call('解密');
       final zip = File(p.join(dir.path, 'data.zip'));
       try {
         await MffCrypto.decryptFile(mff: file, out: zip, key: key.bytes);
       } on MffCorrupted {
-        throw const ImportProblem('檔案損壞或被修改過,無法匯入。');
+        throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
       }
 
       progress?.call('檢查內容');
@@ -124,30 +124,30 @@ class ImportService {
         final name = entry.name;
         final ok = name == 'data.json' || RegExp(r'^photos/[0-9a-f\-]{36}\.jpg$').hasMatch(name);
         if (!entry.isFile || !ok || p.isAbsolute(name) || name.contains('..')) {
-          throw const ImportProblem('檔案損壞或被修改過,無法匯入。');
+          throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
         }
         total += entry.size;
       }
-      if (total > 4 * 1024 * 1024 * 1024) throw const ImportProblem('檔案太大,無法匯入。');
+      if (total > 4 * 1024 * 1024 * 1024) throw const ImportProblem('檔案太大，無法匯入。');
       final dataEntry = archive.findFile('data.json');
-      if (dataEntry == null) throw const ImportProblem('檔案損壞或被修改過,無法匯入。');
+      if (dataEntry == null) throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
       var data = (jsonDecode(utf8.decode(dataEntry.readBytes()!)) as Map).cast<String, Object?>();
 
       // 第 6 步:格式版本比這支 App 舊 → 只把 data.json 送後端逐版轉換(需登入,每人每天 5 次)。
       final fv = data['format_version'];
-      if (fv is! int) throw const ImportProblem('檔案損壞或被修改過,無法匯入。');
-      if (fv > ExportFormat.version) throw const ImportProblem('這個檔案是用較新版本的 App 匯出的,請先更新 App 再匯入。');
+      if (fv is! int) throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
+      if (fv > ExportFormat.version) throw const ImportProblem('這個檔案是用較新版本的 App 匯出的，請先更新 App 再匯入。');
       if (fv < ExportFormat.version) {
         progress?.call('轉換舊格式');
         try {
           final res = await api.convert(data);
           if ((res['missing'] as List? ?? const []).isNotEmpty) {
             // 目前沒有這種欄位;以後有了再做補資料的介面(SPEC 第 4 節)。
-            throw const ImportProblem('這個檔案缺少新版需要的資料,請更新 App 後再試。');
+            throw const ImportProblem('這個檔案缺少新版需要的資料，請更新 App 後再試。');
           }
           data = (res['data'] as Map).cast<String, Object?>();
         } on ApiError catch (e) {
-          throw ImportProblem(e.isDailyLimit ? '今天的格式轉換次數已經用完,請明天再試。' : e.message);
+          throw ImportProblem(e.isDailyLimit ? '今天的格式轉換次數已經用完，請明天再試。' : e.message);
         }
       }
 
@@ -156,13 +156,13 @@ class ImportService {
       try {
         parsed = ExportFormat.parse(data);
       } on FormatException catch (e) {
-        throw ImportProblem('檔案的內容不符合格式:${e.message}');
+        throw ImportProblem('檔案的內容不符合格式：${e.message}');
       }
       for (final id in parsed.photoIds) {
-        if (archive.findFile('photos/$id.jpg') == null) throw const ImportProblem('檔案損壞或被修改過,無法匯入。');
+        if (archive.findFile('photos/$id.jpg') == null) throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
       }
       final photoEntries = archive.where((e) => e.name.startsWith('photos/')).length;
-      if (photoEntries != parsed.photoIds.length) throw const ImportProblem('檔案損壞或被修改過,無法匯入。');
+      if (photoEntries != parsed.photoIds.length) throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
       for (final id in parsed.photoIds) {
         final out = OutputFileStream(p.join(dir.path, '$id.jpg'));
         archive.findFile('photos/$id.jpg')!.writeContent(out);
@@ -175,7 +175,7 @@ class ImportService {
       final localNames = {for (final b in await store.babies()) b.name};
       final newOnes = matches.where((m) => m.localSeq == null).length;
       if (localNames.length + newOnes > Limits.maxBabies) {
-        throw const ImportProblem('匯入後寶寶會超過 ${Limits.maxBabies} 個,不能匯入。');
+        throw const ImportProblem('匯入後寶寶會超過 ${Limits.maxBabies} 個，不能匯入。');
       }
       AppLog.info('import.prepared', {'babies': parsed.babies.length, 'conflicts': matches.where((m) => m.conflict).length});
       return ImportPlan(dir: dir, parsed: parsed, matches: matches, header: header);

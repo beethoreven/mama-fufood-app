@@ -52,7 +52,7 @@ class ApiClient {
           .timeout(path == '/api/v1/convert' ? const Duration(minutes: 3) : _timeout);
     } catch (e) {
       AppLog.warn('api.network_error', {'path': path, 'type': e.runtimeType.toString()});
-      throw const ApiError(0, 'network', '無法連線到伺服器,請確認網路後再試');
+      throw const ApiError(0, 'network', '無法連線到伺服器，請確認網路後再試');
     }
     if (resp.statusCode == 401 && !retried) {
       // ID token 可能剛好過期:丟掉、換一張新的再試一次。
@@ -68,7 +68,7 @@ class ApiClient {
     AppLog.info('api.response', {'path': path, 'status': resp.statusCode, 'code': json['code'] as String?});
     if (resp.statusCode >= 400) {
       throw ApiError(resp.statusCode, (json['code'] as String?) ?? 'http_${resp.statusCode}',
-          (json['error'] as String?) ?? '伺服器回應錯誤(${resp.statusCode})', json);
+          (json['error'] as String?) ?? '伺服器回應錯誤（${resp.statusCode}）', json);
     }
     return json;
   }

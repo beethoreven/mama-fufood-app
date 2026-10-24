@@ -109,7 +109,7 @@ class DailyCheckService extends ChangeNotifier {
           ));
           if (applied) updated++;
         } else if (info['status'] == 'app_update_required') {
-          notice = res['notice'] as String? ?? 'App 有重大更新,更新後才能抓新的清單。';
+          notice = res['notice'] as String? ?? 'App 有重大更新，更新後才能抓新的清單。';
         }
       }
       await store.setSetting(CheckKeys.notice, notice);
@@ -135,16 +135,16 @@ class DailyCheckService extends ChangeNotifier {
         await store.setSetting(CheckKeys.failDay, today);
         await store.setSetting(CheckKeys.failCount, '${Timing.dailyCheckRetriesPerDay}');
         notifyListeners();
-        return '今天的檢查次數已經用完,明天會自動恢復';
+        return '今天的檢查次數已經用完，明天會自動恢復';
       }
       await _noteFailure(today);
-      return e.isNotReady ? '暫時無法檢查,請稍後再試' : e.message;
+      return e.isNotReady ? '暫時無法檢查，請稍後再試' : e.message;
     } on NotSignedIn {
-      return '請先用 Google 帳號登入,才能更新公用資料';
+      return '請先用 Google 帳號登入，才能更新公用資料';
     } catch (e, st) {
       AppLog.error('check.error', e, st);
       await _noteFailure(today);
-      return '檢查失敗,請稍後再試';
+      return '檢查失敗，請稍後再試';
     } finally {
       _running = false;
     }

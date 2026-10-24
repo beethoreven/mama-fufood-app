@@ -103,7 +103,7 @@ class ExportService {
         final bytes = await photos.bytesOf(id);
         if (bytes == null) {
           await encoder.close();
-          throw const ExportProblem('有照片無法從雲端下載,這次沒有匯出。請確認網路後再試。');
+          throw const ExportProblem('有照片無法從雲端下載，這次沒有匯出。請確認網路後再試。');
         }
         final f = File(p.join(tmp.path, '$id.jpg'));
         await f.writeAsBytes(bytes);
@@ -154,13 +154,13 @@ class ExportService {
     } on _VerifyFailed {
       AppLog.warn('export.verify_failed');
       if (uploadedId != null) await cloud.delete(uploadedId);
-      throw const ExportProblem('匯出沒有成功,請再試一次。(壞掉的檔案已刪除)');
+      throw const ExportProblem('匯出沒有成功，請再試一次。（壞掉的檔案已刪除）');
     } on MffCorrupted {
       AppLog.warn('export.verify_failed');
       if (uploadedId != null) await cloud.delete(uploadedId);
-      throw const ExportProblem('匯出沒有成功,請再試一次。(壞掉的檔案已刪除)');
+      throw const ExportProblem('匯出沒有成功，請再試一次。（壞掉的檔案已刪除）');
     } on CloudError catch (e) {
-      if (e.isStorageFull) throw const ExportProblem('你的 Google 雲端硬碟空間不足,這次沒有匯出。');
+      if (e.isStorageFull) throw const ExportProblem('你的 Google 雲端硬碟空間不足，這次沒有匯出。');
       throw ExportProblem(e.message);
     } finally {
       if (await tmp.exists()) await tmp.delete(recursive: true);

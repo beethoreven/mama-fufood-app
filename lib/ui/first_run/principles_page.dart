@@ -61,7 +61,7 @@ class _PrinciplesPageState extends State<PrinciplesPage> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text('資料運用原則', style: t.titleLarge),
                 const SizedBox(height: 6),
-                Text(widget.isUpdate ? '使用者條款或隱私權政策有更新,請看過更新後的內容。' : '開始使用前,請先看過我們怎麼處理你的資料。',
+                Text(widget.isUpdate ? '使用者條款或隱私權政策有更新，請看過更新後的內容。' : '開始使用前，請先看過我們怎麼處理你的資料。',
                     style: t.bodySmall),
               ]),
             ),

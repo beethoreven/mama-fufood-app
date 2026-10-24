@@ -44,7 +44,7 @@ Future<void> openRecord(WidgetTester tester, {String food = '菠菜'}) async {
   await tap(tester, find.text(food).last);
 }
 
-const _note = '嘴巴周圍有點紅,半小時後消退。下次少一點再試。';
+const _note = '嘴巴周圍有點紅，半小時後消退。下次少一點再試。';
 
 final scenarios = <Scenario>[
   Scenario('principles', policyAccepted: false, shows: () => find.text('資料運用原則')),
@@ -62,7 +62,7 @@ final scenarios = <Scenario>[
       go: (t) => openRecord(t, food: '地瓜'),
       shows: () => find.descendant(
             of: find.byType(RecordDialog),
-            matching: find.bySemanticsLabel(RegExp(r'^(用食反應(排斥|接受|喜歡)|過敏狀況(穩定|風險|過敏))$')),
+            matching: find.bySemanticsLabel(RegExp(r'^（用食反應（排斥|接受|喜歡）|過敏狀況（穩定|風險|過敏））$')),
           )),
   Scenario('stats', go: (t) => tap(t, find.text('統計')), shows: () => find.textContaining('根莖')),
   Scenario('judgement', go: (t) => tap(t, find.text('食材判斷')), shows: () => find.text('喜好')),

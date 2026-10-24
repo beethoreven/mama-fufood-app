@@ -134,7 +134,7 @@ Future<Services> seededServices({bool policyAccepted = true, String theme = 'dar
   await add(16, 18, 0, 8, 2000, 2000);
   await add(23, 8, 0, 8, 3000, 2550);
   await add(23, 11, 0, 20, 1500, 500,
-      allergy: Allergy.sameDay, reaction: Reaction.reject, note: '嘴巴周圍有點紅,半小時後消退。下次少一點再試。');
+      allergy: Allergy.sameDay, reaction: Reaction.reject, note: '嘴巴周圍有點紅，半小時後消退。下次少一點再試。');
   await add(23, 15, 0, 32, 2000, 1200, reaction: Reaction.accept);
   await add(23, 18, 30, 1, 3000, 2800);
   return services;

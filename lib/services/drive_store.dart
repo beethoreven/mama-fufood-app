@@ -104,8 +104,8 @@ class GoogleDriveStore implements CloudStore {
       AppLog.warn('drive.error', {'status': e.status, 'reason': reason});
       if (e.status == 404) throw const CloudError('not_found', '雲端硬碟上找不到這個檔案');
       if (reason == 'storageQuotaExceeded') throw const CloudError('storage_full', '你的 Google 雲端硬碟空間不足');
-      if (e.status == 401 || e.status == 403) throw const CloudError('unauthorized', '雲端硬碟的權限不足,請重新登入');
-      throw CloudError('other', '雲端硬碟回應錯誤(${e.status})');
+      if (e.status == 401 || e.status == 403) throw const CloudError('unauthorized', '雲端硬碟的權限不足，請重新登入');
+      throw CloudError('other', '雲端硬碟回應錯誤（${e.status}）');
     } on CloudError {
       rethrow;
     } on NotSignedIn {
@@ -114,7 +114,7 @@ class GoogleDriveStore implements CloudStore {
       rethrow;
     } catch (e) {
       AppLog.warn('drive.network_error', {'type': e.runtimeType.toString()});
-      throw const CloudError('network', '無法連上 Google 雲端硬碟,請確認網路後再試');
+      throw const CloudError('network', '無法連上 Google 雲端硬碟，請確認網路後再試');
     } finally {
       client.close();
     }

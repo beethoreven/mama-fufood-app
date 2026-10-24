@@ -58,7 +58,7 @@ void main() {
     final stats = computeStats(records, catalog(), const StatsFilter(year: 2026, month: 10));
     expect(stats.map((g) => g.group.name), ['水果', '五穀']);
     final fruit = stats.first.foods;
-    expect(fruit.map((f) => f.food.id), [21], reason: '香蕉是 9 月的,不在篩選範圍');
+    expect(fruit.map((f) => f.food.id), [21], reason: '香蕉是 9 月的，不在篩選範圍');
     final grains = stats.last.foods;
     expect(grains.map((f) => f.food.id), [10, 11]);
     expect(grains.first.centiByUnit, {1: 3000, 2: 3000});
@@ -83,12 +83,12 @@ void main() {
     expect(monthGrid(2026, 8, weekStartsMonday: true).length, 6);
   });
 
-  test('月曆每格最多三排,超過 3 筆第三排是「…」', () {
+  test('月曆每格最多三排，超過 3 筆第三排是「…」', () {
     expect(cellRows(3), (shown: 3, more: false));
     expect(cellRows(4), (shown: 2, more: true));
   });
 
-  test('數量:百分之一的整數與文字互換', () {
+  test('數量：百分之一的整數與文字互換', () {
     expect(Amount.parse('25.5'), 2550);
     expect(Amount.parse('999.99'), 99999);
     expect(Amount.parse('1000'), isNull);
@@ -104,7 +104,7 @@ void main() {
     expect(Amount.fromJson(1000), isNull);
   });
 
-  test('時間:UTC 加時區偏移得到月曆上的日期', () {
+  test('時間：UTC 加時區偏移得到月曆上的日期', () {
     // 台北 10/24 07:30 = UTC 10/23 23:30。
     final utc = TimeRules.toUtcMs(const Day(2026, 10, 24), 7, 30, 480);
     expect(TimeRules.isoMinute(utc), '2026-10-23T23:30:00Z');
@@ -116,7 +116,7 @@ void main() {
     expect(const Day(2026, 5, 31).minusMonths(3), const Day(2026, 3, 3));
   });
 
-  test('字數:一個 emoji 算一個字', () {
+  test('字數：一個 emoji 算一個字', () {
     expect(charCount('小寶👨‍👩‍👧'), 3);
   });
 }

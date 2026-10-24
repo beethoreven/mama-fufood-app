@@ -80,7 +80,7 @@ class _WheelPickerDialogState<T> extends State<_WheelPickerDialog<T>> {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(widget.title!, style: Theme.of(context).textTheme.titleSmall),
               ),
-            Text('停 1 秒自動選定,點外面取消', style: Theme.of(context).textTheme.labelSmall),
+            Text('停 1 秒自動選定，點外面取消', style: Theme.of(context).textTheme.labelSmall),
             const SizedBox(height: 8),
             SizedBox(
               height: _itemExtent * (visible < 3 ? 3 : visible),

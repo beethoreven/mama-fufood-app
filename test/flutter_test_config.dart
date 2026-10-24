@@ -35,7 +35,7 @@ class _TolerantComparator extends LocalFileComparator {
     if (ratio <= maxDiffRatio) return true;
     final result = await GoldenFileComparator.compareLists(imageBytes, goldenBytes);
     final error = await generateFailureOutput(result, golden, basedir);
-    throw FlutterError('$error\n超過容許的差異:${(ratio * 100).toStringAsFixed(2)}% 的像素不一樣。');
+    throw FlutterError('$error\n超過容許的差異：${(ratio * 100).toStringAsFixed(2)}% 的像素不一樣。');
   }
 
   static Future<double> _diffRatio(Uint8List a, Uint8List b) async {

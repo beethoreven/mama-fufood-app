@@ -327,7 +327,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
             ),
           ),
           const SizedBox(height: 4),
-          Text('同一天吃多種食材時,請依你的判斷標記。', style: Theme.of(context).textTheme.labelSmall),
+          Text('同一天吃多種食材時，請依你的判斷標記。', style: Theme.of(context).textTheme.labelSmall),
         ]),
       ),
       // 5. 用食反應。
@@ -416,7 +416,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
                     setState(() => d.photos = [...d.photos, ...picked]);
                   } catch (e, st) {
                     AppLog.error('photo.pick_failed', e, st);
-                    if (mounted) toast(context, '照片沒有加進來,請再試一次');
+                    if (mounted) toast(context, '照片沒有加進來，請再試一次');
                   } finally {
                     if (mounted) setState(() => _busy = false);
                   }
@@ -482,7 +482,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
       if (r != null) {
         _original = r;
         _setDraft(_fromRecord(r, catalog));
-        if (mounted) toast(context, '雲端有比較新的版本,已經更新成最新的內容');
+        if (mounted) toast(context, '雲端有比較新的版本，已經更新成最新的內容');
       }
     }
     setState(() {
@@ -498,7 +498,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
     }
     if (_changed) {
       final ok = await confirm(context,
-          title: _mode == _Mode.edit ? '放棄修改?' : '放棄這筆紀錄?', message: '剛剛輸入的內容不會儲存。', ok: '放棄');
+          title: _mode == _Mode.edit ? '放棄修改？' : '放棄這筆紀錄？', message: '剛剛輸入的內容不會儲存。', ok: '放棄');
       if (!ok || !mounted) return;
     }
     await ref.read(servicesProvider).photos.discardDraft(_draft?.photos ?? const []);
@@ -569,14 +569,14 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
       if (mounted) toast(context, e.message);
     } catch (e, st) {
       AppLog.error('record.save_failed', e, st);
-      if (mounted) toast(context, '儲存失敗,請再試一次');
+      if (mounted) toast(context, '儲存失敗，請再試一次');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
   Future<void> _delete() async {
-    final ok = await confirm(context, title: '刪除這筆紀錄?', message: '刪除後無法復原。', ok: '刪除', danger: true);
+    final ok = await confirm(context, title: '刪除這筆紀錄？', message: '刪除後無法復原。', ok: '刪除', danger: true);
     if (!ok || !mounted) return;
     final services = ref.read(servicesProvider);
     final record = _original!;

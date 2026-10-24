@@ -25,7 +25,7 @@ void main() {
         noncePrefix: base64.encode(MffCrypto.randomBytes(8)),
       );
 
-  group('匯出格式:和後端是同一份規則(export_formats/samples/v1.json)', () {
+  group('匯出格式：和後端是同一份規則（export_formats/samples/v1.json）', () {
     test('後端的樣本檔 App 也認得', () {
       final parsed = ExportFormat.parse(sample());
       expect(parsed.babies.map((b) => b.name), ['小寶', '二寶']);
@@ -49,7 +49,7 @@ void main() {
       ('週起始日只有星期一、星期日', (d) => (d['settings'] as Map)['week_start'] = 'saturday'),
       ('格式版本不對', (d) => d['format_version'] = 2),
     ]) {
-      test('擋下:$label', () {
+      test('擋下：$label', () {
         final d = sample();
         mutate(d);
         expect(() => ExportFormat.parse(d), throwsFormatException);
@@ -57,7 +57,7 @@ void main() {
     }
   });
 
-  group('加密(AES-256-GCM,每段 1 MiB)', () {
+  group('加密（AES-256-GCM，每段 1 MiB）', () {
     final key = MffCrypto.randomBytes(32);
 
     Future<File> roundTrip(List<int> content) async {
@@ -67,7 +67,7 @@ void main() {
       return mff;
     }
 
-    test('多段內容加密再解密,一個位元組都不差', () async {
+    test('多段內容加密再解密，一個位元組都不差', () async {
       final content = List<int>.generate(MffCrypto.segment * 2 + 12345, (i) => (i * 31) % 251);
       final mff = await roundTrip(content);
       final (h, _) = (await MffCrypto.readHeader(mff))!;
@@ -84,7 +84,7 @@ void main() {
       expect(back.lengthSync(), MffCrypto.segment);
     });
 
-    test('改了一個位元、截掉最後一段、改了檔頭、用錯金鑰:都解不開', () async {
+    test('改了一個位元、截掉最後一段、改了檔頭、用錯金鑰：都解不開', () async {
       final content = List<int>.generate(MffCrypto.segment + 100, (i) => i % 256);
       final mff = await roundTrip(content);
       final bytes = mff.readAsBytesSync();
@@ -114,8 +114,8 @@ void main() {
     });
   });
 
-  group('金鑰:一個帳號一把,另做防呆', () {
-    test('沒有就建立;之後一律用同一把', () async {
+  group('金鑰：一個帳號一把，另做防呆', () {
+    test('沒有就建立；之後一律用同一把', () async {
       final cloud = FakeCloud();
       final k1 = await ExportKeys(cloud).getOrCreate();
       final k2 = await ExportKeys(cloud).getOrCreate();
@@ -124,14 +124,14 @@ void main() {
       expect(await ExportKeys(cloud).find('nope'), isNull);
     });
 
-    test('讀取失敗(斷網)不會另外建立一把', () async {
+    test('讀取失敗（斷網）不會另外建立一把', () async {
       final cloud = FakeCloud()..offline = true;
       await expectLater(ExportKeys(cloud).getOrCreate(), throwsA(anything));
       cloud.offline = false;
       expect(cloud.files, isEmpty);
     });
 
-    test('兩支手機同時建立了兩把:大家都改用最早的那把,兩把都還找得到', () async {
+    test('兩支手機同時建立了兩把：大家都改用最早的那把，兩把都還找得到', () async {
       final cloud = FakeCloud();
       final keys = ExportKeys(cloud);
       final early = utf8.encode(jsonEncode({'key_id': 'early', 'key': base64.encode(List.filled(32, 1)), 'created_at': 1000}));

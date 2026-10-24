@@ -68,7 +68,7 @@ class BabiesPage extends ConsumerWidget {
         label: Text(babies.length >= Limits.maxBabies ? '最多 ${Limits.maxBabies} 個寶寶' : '新增寶寶'),
       ),
       const SizedBox(height: 8),
-      Text('改了寶寶的名稱,就會被當成不同的寶寶(匯入時用名稱比對)。', style: Theme.of(context).textTheme.labelSmall),
+      Text('改了寶寶的名稱，就會被當成不同的寶寶（匯入時用名稱比對）。', style: Theme.of(context).textTheme.labelSmall),
       const DisclaimerText(Disclaimers.general),
     ]);
   }

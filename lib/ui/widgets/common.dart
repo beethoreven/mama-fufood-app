@@ -7,11 +7,11 @@ import '../theme.dart';
 /// 免責小字(texts/DISCLAIMERS_DRAFT.md 第一節)。月曆頁因版面空間不放,其他頁面都放;
 /// 小對話框與提示訊息不放。
 abstract final class Disclaimers {
-  static const record = '本 App 僅供記錄與參考,非基於醫學知識做的判斷。任何反應請諮詢醫師。';
-  static const stats = '統計只加總你記錄的食用量,僅供記錄與參考。';
-  static const judgement = '僅供記錄與參考,非基於醫學知識做的判斷;沒有圖示代表紀錄還不夠。任何反應請諮詢醫師。';
-  static const guide = '本 App 僅供記錄與參考,非基於醫學知識做的判斷。寶寶有任何反應,請諮詢醫師。';
-  static const general = '本 App 僅供記錄與參考,非基於醫學知識做的判斷。';
+  static const record = '本 App 僅供記錄與參考，非基於醫學知識做的判斷。任何反應請諮詢醫師。';
+  static const stats = '統計只加總你記錄的食用量，僅供記錄與參考。';
+  static const judgement = '僅供記錄與參考，非基於醫學知識做的判斷；沒有圖示代表紀錄還不夠。任何反應請諮詢醫師。';
+  static const guide = '本 App 僅供記錄與參考，非基於醫學知識做的判斷。寶寶有任何反應，請諮詢醫師。';
+  static const general = '本 App 僅供記錄與參考，非基於醫學知識做的判斷。';
 }
 
 class DisclaimerText extends StatelessWidget {
@@ -42,8 +42,8 @@ class AllergyIcon extends StatelessWidget {
 
   static String explain(AllergyLevel l) => switch (l) {
         AllergyLevel.stable => '目前的紀錄沒有出現過敏狀況。這不代表這個食材是安全的。',
-        AllergyLevel.risk => '紀錄中出現過過敏狀況,請留意寶寶的反應,有疑慮請諮詢醫師。',
-        AllergyLevel.allergic => '多次出現過敏反應,建議諮詢醫師。',
+        AllergyLevel.risk => '紀錄中出現過過敏狀況，請留意寶寶的反應，有疑慮請諮詢醫師。',
+        AllergyLevel.allergic => '多次出現過敏反應，建議諮詢醫師。',
       };
 
   @override
@@ -57,7 +57,7 @@ class AllergyIcon extends StatelessWidget {
       AllergyLevel.allergic => (Symbols.error_rounded, c.danger),
     };
     return InfoPopover(
-      message: '過敏狀況:${label(l)}\n${explain(l)}\n\n$_tail',
+      message: '過敏狀況：${label(l)}\n${explain(l)}\n\n$_tail',
       child: Semantics(
         label: '過敏狀況${label(l)}',
         child: Padding(padding: const EdgeInsets.all(4), child: Icon(icon, fill: 1, color: color, size: size)),
@@ -79,9 +79,9 @@ class PreferenceIcon extends StatelessWidget {
       };
 
   static String explain(PreferenceLevel l) => switch (l) {
-        PreferenceLevel.reject => '依最近的紀錄,寶寶大多不太接受這個食材。口味會隨多次嘗試改變。',
-        PreferenceLevel.accept => '依最近的紀錄,寶寶大多可以接受這個食材。',
-        PreferenceLevel.like => '依最近的紀錄,寶寶大多喜歡這個食材。',
+        PreferenceLevel.reject => '依最近的紀錄，寶寶大多不太接受這個食材。口味會隨多次嘗試改變。',
+        PreferenceLevel.accept => '依最近的紀錄，寶寶大多可以接受這個食材。',
+        PreferenceLevel.like => '依最近的紀錄，寶寶大多喜歡這個食材。',
       };
 
   @override
@@ -95,7 +95,7 @@ class PreferenceIcon extends StatelessWidget {
       PreferenceLevel.like => (Symbols.sentiment_very_satisfied_rounded, c.like),
     };
     return InfoPopover(
-      message: '用食反應:${label(l)}\n${explain(l)}\n\n$_tail',
+      message: '用食反應：${label(l)}\n${explain(l)}\n\n$_tail',
       child: Semantics(
         label: '用食反應${label(l)}',
         child: Padding(padding: const EdgeInsets.all(4), child: Icon(icon, fill: 1, color: color, size: size)),
@@ -104,7 +104,7 @@ class PreferenceIcon extends StatelessWidget {
   }
 }
 
-const _tail = '僅供記錄與參考,非基於醫學知識做的判斷;判斷方式見「判斷邏輯說明」。';
+const _tail = '僅供記錄與參考，非基於醫學知識做的判斷；判斷方式見「判斷邏輯說明」。';
 
 /// 輕點出現說明文字,點其他地方或滑動就消失(SPEC 第 7 節)。
 class InfoPopover extends StatefulWidget {

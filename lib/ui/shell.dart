@@ -250,7 +250,7 @@ class _TopBar extends ConsumerWidget implements PreferredSizeWidget {
               ),
             ListTile(
               leading: const Icon(Icons.settings_rounded),
-              title: const Text('寶寶們設定(新增、改名、刪除)'),
+              title: const Text('寶寶們設定（新增、改名、刪除）'),
               onTap: () => Navigator.pop(ctx, -1),
             ),
           ],
@@ -317,7 +317,7 @@ String _signInMessage(Object e) {
   final text = e.toString();
   if (text.contains('canceled')) return '已取消登入';
   if (text.contains('還沒設定')) return text.replaceFirst('Bad state: ', '');
-  return '登入沒有成功,請稍後再試';
+  return '登入沒有成功，請稍後再試';
 }
 
 Future<void> showAccountSheet(BuildContext context, WidgetRef ref, SignedInUser u) async {

@@ -116,7 +116,7 @@ class Store {
       throw const InputProblem('名稱最多 ${Limits.babyNameMaxChars} 個字');
     }
     final same = (await babies()).where((b) => b.name == name && b.seq != exceptSeq);
-    if (same.isNotEmpty) throw const InputProblem('已經有同名的寶寶了,要的話可以加上編號');
+    if (same.isNotEmpty) throw const InputProblem('已經有同名的寶寶了，要的話可以加上編號');
     return name;
   }
 

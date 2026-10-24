@@ -52,8 +52,8 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
           ),
           const SizedBox(height: 6),
           Text(_kind == FeedbackKind.problem
-              ? '會附上手機狀態、雲端同步狀態與最近 7 天的使用記錄(不含寶寶名稱、備註與紀錄內容)。'
-              : '只附基本資訊(App 版本、機型、系統版本、設定摘要)。', style: t.bodySmall),
+              ? '會附上手機狀態、雲端同步狀態與最近 7 天的使用記錄（不含寶寶名稱、備註與紀錄內容）。'
+              : '只附基本資訊（App 版本、機型、系統版本、設定摘要）。', style: t.bodySmall),
           const SizedBox(height: 12),
           TextField(
             controller: _text,
@@ -74,7 +74,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
         ]),
       ),
       const SizedBox(height: 8),
-      Text('需要先登入 Google,我們才能用 Email 回覆你。每天最多 ${Limits.feedbackPerDay} 則。', style: t.labelSmall),
+      Text('需要先登入 Google，我們才能用 Email 回覆你。每天最多 ${Limits.feedbackPerDay} 則。', style: t.labelSmall),
       const DisclaimerText(Disclaimers.general),
     ]);
   }
@@ -116,10 +116,10 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
       await showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text(outcome.sent ? '已送出,謝謝你' : '目前無法送出'),
+          title: Text(outcome.sent ? '已送出，謝謝你' : '目前無法送出'),
           content: Text(outcome.sent
-              ? '意見回饋編號:${outcome.id.substring(0, 8)}'
-              : '目前無法送出,會在下次開啟 App 時自動重試。'),
+              ? '意見回饋編號：${outcome.id.substring(0, 8)}'
+              : '目前無法送出，會在下次開啟 App 時自動重試。'),
           actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('好'))],
         ),
       );
@@ -127,7 +127,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
       if (mounted) toast(context, e.message);
     } catch (e, st) {
       AppLog.error('feedback.error', e, st);
-      if (mounted) toast(context, '送出失敗,請稍後再試');
+      if (mounted) toast(context, '送出失敗，請稍後再試');
     } finally {
       if (mounted) setState(() => _busy = false);
     }

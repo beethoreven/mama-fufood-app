@@ -26,30 +26,30 @@ void main() {
         '1AbCdEfGhIjKlMnOpQrStUvWxYz0123'),
     ('寶寶名稱', '小寶 的紀錄', '小寶'),
     ('帳號的顯示名稱', 'signed in as 王小明', '王小明'),
-    ('手機(連字號)', 'call 0900-000-000', '0900-000-000'),
-    ('手機(連在一起)', 'call 0900000000 now', '0900000000'),
-    ('手機(+886)', 'call +886 900 000 000', '900 000 000'),
-    ('市話(括號)', 'call (02) 0000-0000', '0000-0000'),
-    ('市話(連字號)', 'call 04-0000-0000', '0000-0000'),
+    ('手機（連字號）', 'call 0900-000-000', '0900-000-000'),
+    ('手機（連在一起）', 'call 0900000000 now', '0900000000'),
+    ('手機（+886）', 'call +886 900 000 000', '900 000 000'),
+    ('市話（括號）', 'call (02) 0000-0000', '0000-0000'),
+    ('市話（連字號）', 'call 04-0000-0000', '0000-0000'),
     ('Android ID', 'android_id=9774d56d682e549c', '9774d56d682e549c'),
   ]) {
-    test('遮蔽:$label', () {
+    test('遮蔽：$label', () {
       final out = AppLog.redact(input);
       expect(out, isNot(contains(hidden)), reason: out);
     });
   }
 
   for (final (label, input) in <(String, String)>[
-    ('紀錄的 UUID(除錯需要)', 'record 9d8e7f6a-5b4c-4d3e-8f2a-1b0c9d8e7f6a saved'),
+    ('紀錄的 UUID（除錯需要）', 'record 9d8e7f6a-5b4c-4d3e-8f2a-1b0c9d8e7f6a saved'),
     ('毫秒時間戳', 'at 1792731600000'),
     ('版本號', 'app 1.0.0+1000'),
     ('程式碼位置', 'package:mama_fufood/ui/shell.dart:123:45'),
     ('狀態碼與時間', 'HTTP 503 after 0:00:05.000000'),
   ]) {
-    test('保留:$label', () => expect(AppLog.redact(input), input));
+    test('保留：$label', () => expect(AppLog.redact(input), input));
   }
 
-  test('一個字的顯示名稱不比對(太容易誤傷其他文字)', () {
+  test('一個字的顯示名稱不比對（太容易誤傷其他文字）', () {
     AppLog.accountName = '明';
     expect(AppLog.redact('明天再試'), '明天再試');
   });

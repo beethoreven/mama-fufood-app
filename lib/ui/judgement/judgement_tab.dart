@@ -34,7 +34,7 @@ class _JudgementTabState extends ConsumerState<JudgementTab> {
     final shown = _foodId == null ? foods.where((f) => !f.disabled).toList() : foods.where((f) => f.id == _foodId).toList();
     final async = ref.watch(allRecordsProvider(baby.seq));
     if (async.hasError) {
-      return Center(child: Text('讀取紀錄失敗,請重新開啟 App', style: TextStyle(color: context.colors.danger)));
+      return Center(child: Text('讀取紀錄失敗，請重新開啟 App', style: TextStyle(color: context.colors.danger)));
     }
     if (!async.hasValue) return const Center(child: CircularProgressIndicator());
     final records = knownOnly(async.value!, catalog);
@@ -61,7 +61,7 @@ class _JudgementTabState extends ConsumerState<JudgementTab> {
           ),
           PickerButton(
             enabled: group != null,
-            text: _foodId == null ? '食材:全部' : '${catalog.food(_foodId!)?.emoji} ${catalog.food(_foodId!)?.name}',
+            text: _foodId == null ? '食材：全部' : '${catalog.food(_foodId!)?.emoji} ${catalog.food(_foodId!)?.name}',
             onTap: () async {
               // 0 代表「全部」;點外面取消時回 null,維持原本的選擇。
               final options = [0, for (final f in foods.where((f) => !f.disabled)) f.id];

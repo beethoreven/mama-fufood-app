@@ -10,7 +10,7 @@ class FakeCloud implements CloudStore {
   bool offline = false;
 
   void _check() {
-    if (offline) throw const CloudError('network', '無法連上 Google 雲端硬碟,請確認網路後再試');
+    if (offline) throw const CloudError('network', '無法連上 Google 雲端硬碟，請確認網路後再試');
   }
 
   String _id() => 'f${_next++}';

@@ -173,5 +173,5 @@ class MffCorrupted implements Exception {
   const MffCorrupted();
 
   @override
-  String toString() => '檔案損壞或被修改過,無法匯入。';
+  String toString() => '檔案損壞或被修改過，無法匯入。';
 }
