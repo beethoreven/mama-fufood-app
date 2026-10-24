@@ -59,3 +59,8 @@ failures/
 
 # 本機開發工具的個人設定(每台機器不一樣,不該共用)。
 .claude/settings.local.json
+
+# 簽署金鑰的密碼檔,放錯資料夾也不能進 git(正確位置是 android/key.properties)。
+key.properties
+*.jks
+*.keystore

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants.dart';
 import '../../core/env.dart';
 import '../../data/store.dart';
 import '../../services/daily_check.dart';
@@ -12,6 +13,7 @@ import '../flows.dart';
 import '../shell.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
+import '../widgets/wheel_picker.dart';
 
 /// App 設定(SPEC 第 6 節):週起始日、主題、紀錄同步開關、照片雲端開關(含固定提醒文字)、
 /// 需登入才能更新公用資料的說明、App 版本與各資料集版本及最後檢查時間、手動「檢查更新」、
@@ -84,6 +86,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             ),
           ),
         ),
+        ListTile(
+          title: const Text('選單：放手後停多久自動選定'),
+          subtitle: Text('${secondsText(settings.pickerAutoApply)} 秒（可選 0.5～5 秒）'),
+          trailing: const Icon(Icons.expand_more_rounded),
+          onTap: () => _pickDelay(context, store, Keys.pickerApplyMs, '放手後停多久選定', settings.pickerAutoApply),
+        ),
+        ListTile(
+          title: const Text('選單：打開後沒動多久選中間那一項'),
+          subtitle: Text('${secondsText(settings.pickerIdleApply)} 秒（可選 0.5～5 秒）'),
+          trailing: const Icon(Icons.expand_more_rounded),
+          onTap: () => _pickDelay(context, store, Keys.pickerIdleMs, '沒動多久選定', settings.pickerIdleApply),
+        ),
       ]),
       section('雲端', [
         SwitchListTile(
@@ -141,13 +155,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ListTile(
           title: const Text('食材清單與單位'),
           subtitle: Text('需要登入 Google 才能更新公用資料。\n'
-              '食材清單 ${catalog?.foodVersion ?? '-'}、單位 ${catalog?.unitVersion ?? '-'}\n最後檢查：${fmt(lastCheck)}'),
+              '食材清單 ${catalog?.foodVersion ?? '-'}\n單位 ${catalog?.unitVersion ?? '-'}\n最後檢查：${fmt(lastCheck)}'),
           isThreeLine: true,
         ),
         ListTile(
           title: const Text('檢查更新'),
           subtitle: Text(Env.backendConfigured
-              ? '每天最多 10 次${raw[CheckKeys.checksLeft]?.isNotEmpty == true ? '，今天還有 ${raw[CheckKeys.checksLeft]} 次' : ''}'
+              ? '（每天最多 10 次${raw[CheckKeys.checksLeft]?.isNotEmpty == true ? '，今天還有 ${raw[CheckKeys.checksLeft]} 次' : ''}）'
               : '這個版本還沒設定後端網址'),
           trailing: _checking
               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
@@ -184,5 +198,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ]),
       const DisclaimerText(Disclaimers.general),
     ]);
+  }
+
+  /// 選單自動選定的秒數(0.5~5 秒)。只存在這支手機。
+  Future<void> _pickDelay(BuildContext context, Store store, String key, String title, Duration current) async {
+    final d = await showWheelPicker<Duration>(context,
+        title: title, items: Timing.pickerDelayChoices, initial: current, label: (d) => '${secondsText(d)} 秒');
+    if (d != null) await store.setSetting(key, '${d.inMilliseconds}');
   }
 }

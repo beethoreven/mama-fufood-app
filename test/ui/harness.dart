@@ -191,6 +191,8 @@ Future<void> tap(WidgetTester tester, Finder finder) async {
 /// 測試結束前拆掉畫面、關掉資料庫(不然資料庫的串流會留下還沒跑完的計時器)。
 Future<void> tearDownApp(WidgetTester tester, Services services) async {
   await tester.pumpWidget(const SizedBox.shrink());
+  // 存過紀錄的畫面會排一個 8 秒後的同步;不取消的話測試結束時會報「還有計時器沒跑完」。
+  services.sync.dispose();
   await settle(tester);
   await tester.runAsync(() => services.store.db.close());
 }

@@ -53,6 +53,11 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
     final settings = settingsOf(ref);
     if (baby == null || catalog == null) return const SizedBox.shrink();
     final records = knownOnly(ref.watch(monthRecordsProvider((baby.seq, _year, _month))).value ?? const [], catalog);
+    // 上個月最後一天填了「隔天發生過敏」的話,這個月 1 號也要標。
+    final prevMonth = Day(_year, _month, 1).addDays(-1);
+    final prevRecords =
+        knownOnly(ref.watch(monthRecordsProvider((baby.seq, prevMonth.year, prevMonth.month))).value ?? const [], catalog);
+    final allergyDays = allergyMarkedDays([...records, ...prevRecords.where((r) => r.day == prevMonth)]);
     final byDay = <Day, List<FeedRecord>>{};
     for (final r in records) {
       byDay.putIfAbsent(r.day, () => []).add(r);
@@ -97,6 +102,7 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
                                   day: day,
                                   records: byDay[day] ?? const [],
                                   catalog: catalog,
+                                  allergy: allergyDays.contains(day),
                                   onTap: () => _openDay(context, baby.seq, day, byDay[day] ?? const []),
                                 ),
                         ),
@@ -161,9 +167,13 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
 }
 
 class _DayCell extends StatelessWidget {
-  const _DayCell({required this.day, required this.records, required this.catalog, required this.onTap});
+  const _DayCell(
+      {required this.day, required this.records, required this.catalog, required this.allergy, required this.onTap});
 
   final Day day;
+
+  /// 當天或前一天的紀錄有過敏狀況:格子標淡紅色(見 allergyMarkedDays)。
+  final bool allergy;
   final List<FeedRecord> records;
   final Catalog catalog;
   final VoidCallback onTap;
@@ -177,7 +187,10 @@ class _DayCell extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(border: Border.all(color: c.border, width: 0.25)),
+        decoration: BoxDecoration(
+          color: allergy ? c.danger.withValues(alpha: 0.16) : null,
+          border: Border.all(color: c.border, width: 0.25),
+        ),
         padding: const EdgeInsets.fromLTRB(1, 3, 1, 2),
         child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Center(

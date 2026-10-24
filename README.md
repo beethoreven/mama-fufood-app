@@ -156,6 +156,7 @@ tool/check_version.dart   版本號規則檢查
 - 320 dp 寬的小螢幕,月曆格子寬 45.7 dp,不到 48 dp(見上方畫面測試);放三排的格子在大一級字時字比較小,要在實機上再看一次是否看得清楚。
 - release 版不把記錄印到 logcat,要看記錄只能透過意見回饋。
 - 雲端同步以一支手機為主,兩支手機同時改同一筆時會請使用者選擇。
+- **打包時 Flutter 警告 `cryptography_flutter`、`flutter_image_compress_common` 兩個外掛還在用舊的 Kotlin 設定(KGP),將來的 Flutter 版本會因此打包失敗。** 目前兩個都已經是最新版(2.3.4、1.1.1),沒有可以升級的版本,所以先不動。升級 Flutter 前先看這兩個外掛有沒有出新版;如果還是沒有:`cryptography_flutter` 可以拿掉(匯出加密會改用純 Dart 的實作,功能一樣、只是比較慢),`flutter_image_compress` 要找替代套件。
 
 ---
 
@@ -429,6 +430,7 @@ tool/check_version.dart   version-number rule check
 - On a 320 dp wide screen, calendar cells are 45.7 dp wide, under 48 dp (see the screen tests above); cells with three rows use small text at the larger text size — worth checking on a real phone for legibility.
 - Release builds don't print logs to logcat; logs can only be seen through feedback.
 - Cloud sync is designed around one main phone; when two phones change the same record at the same time, the user is asked to choose.
+- **When building, Flutter warns that the `cryptography_flutter` and `flutter_image_compress_common` plugins still use the old Kotlin setup (KGP), which future Flutter versions will refuse to build.** Both are already at their latest versions (2.3.4, 1.1.1), with nothing newer to upgrade to, so they stay for now. Before upgrading Flutter, check whether either plugin has a new release; if not, `cryptography_flutter` can be dropped (export encryption falls back to the pure-Dart implementation — same result, just slower), and `flutter_image_compress` needs a replacement package.
 
 ---
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -85,6 +86,10 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
   FeedRecord? _original;
   String _savedSignature = '';
   bool _busy = false;
+  // 選單開著時、以及選單關掉後的一小段時間,按「儲存」不動作(畫面上看不出來):
+  // 選單自動選定後很順手就會去點儲存,容易在還沒看清楚選了什麼之前就存下去。
+  bool _saveLocked = false;
+  Timer? _saveUnlock;
   final _prepared = TextEditingController();
   final _eaten = TextEditingController();
   final _note = TextEditingController();
@@ -98,6 +103,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
 
   @override
   void dispose() {
+    _saveUnlock?.cancel();
     _prepared.dispose();
     _eaten.dispose();
     _note.dispose();
@@ -178,6 +184,15 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
       },
       child: Dialog(
         insetPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 28),
+        // 外框顏色分出三種狀態:檢視(只能看)用一般的框線,新增用主色,修改用提醒色。
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(Radii.card),
+          side: switch (_mode) {
+            _Mode.view => BorderSide(color: c.border),
+            _Mode.add => BorderSide(color: c.accent, width: 2),
+            _Mode.edit => BorderSide(color: c.warn, width: 2),
+          },
+        ),
         child: d == null || catalog == null
             ? const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()))
             : Column(mainAxisSize: MainAxisSize.min, children: [
@@ -185,20 +200,42 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
                   padding: const EdgeInsets.fromLTRB(18, 16, 18, 8),
                   child: Row(children: [
                     Text(title, style: Theme.of(context).textTheme.titleMedium),
+                    if (!_readOnly) ...[const SizedBox(width: 8), _modeTag()],
                     const Spacer(),
                     if (_busy) const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
                   ]),
                 ),
                 Flexible(child: SingleChildScrollView(padding: const EdgeInsets.symmetric(horizontal: 16), child: _form(d, catalog))),
-                Container(
-                  decoration: BoxDecoration(border: Border(top: BorderSide(color: c.border))),
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-                  child: _buttons(),
-                ),
+                // 小鍵盤打開時(正在輸入)不顯示按鈕列,讓輸入區多一點空間;收起鍵盤就回來。
+                if (MediaQuery.viewInsetsOf(context).bottom == 0)
+                  Container(
+                    decoration: BoxDecoration(border: Border(top: BorderSide(color: c.border))),
+                    padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+                    child: _buttons(),
+                  ),
               ]),
       ),
     );
   }
+
+  /// 標題旁的狀態標籤(新增中、修改中),一眼看出現在可以編輯。檢視時不放標籤,灰字就看得出不能改。
+  Widget _modeTag() {
+    final c = context.colors;
+    final (text, bg, fg) = _mode == _Mode.add ? ('新增中', c.accent, c.onAccent) : ('修改中', c.warn, c.surface);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+      child: Text(text, style: Theme.of(context).textTheme.labelSmall!.copyWith(color: fg)),
+    );
+  }
+
+  /// 檢視時,文字欄位不畫底色與外框、字改成灰色,看起來就是鎖住的文字,不像可以輸入的欄位。
+  InputDecoration _fieldDecoration({String? hint}) => _readOnly
+      ? InputDecoration(hintText: hint, filled: false, border: InputBorder.none, enabledBorder: InputBorder.none,
+          focusedBorder: InputBorder.none, contentPadding: const EdgeInsets.symmetric(vertical: 8), counterText: '')
+      : InputDecoration(hintText: hint);
+
+  TextStyle? get _fieldStyle => _readOnly ? TextStyle(color: context.colors.muted) : null;
 
   Widget _section(String label, Widget child, {Widget? trailing}) => Padding(
         padding: const EdgeInsets.only(top: 12),
@@ -246,7 +283,8 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
     String two(int v) => v.toString().padLeft(2, '0');
     Future<void> pick<T>(String title, List<T> items, T? current, String Function(T) label, void Function(T) apply) async {
       if (_readOnly) return;
-      final v = await showWheelPicker<T>(context, title: title, items: items, initial: current, label: label);
+      final v = await _lockSaveWhile(
+          () => showWheelPicker<T>(context, title: title, items: items, initial: current, label: label));
       if (v != null) setState(() => apply(v));
     }
 
@@ -255,29 +293,34 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
       _section('日期與時間', Wrap(spacing: 6, runSpacing: 6, children: [
         PickerButton(
           enabled: !_readOnly,
+          readOnly: _readOnly,
           text: '${d.day.year} 年',
           onTap: () => pick('年', [for (var y = Limits.yearMin; y <= Limits.yearMax; y++) y], d.day.year, (y) => '$y 年',
               (y) => d.day = Day(y, d.day.month, d.day.day.clamp(1, DateTime.utc(y, d.day.month + 1, 0).day))),
         ),
         PickerButton(
           enabled: !_readOnly,
+          readOnly: _readOnly,
           text: '${d.day.month} 月',
           onTap: () => pick('月', [for (var m = 1; m <= 12; m++) m], d.day.month, (m) => '$m 月',
               (m) => d.day = Day(d.day.year, m, d.day.day.clamp(1, DateTime.utc(d.day.year, m + 1, 0).day))),
         ),
         PickerButton(
           enabled: !_readOnly,
+          readOnly: _readOnly,
           text: '${d.day.day} 日',
           onTap: () => pick('日', [for (var x = 1; x <= daysInMonth; x++) x], d.day.day, (x) => '$x 日',
               (x) => d.day = Day(d.day.year, d.day.month, x)),
         ),
         PickerButton(
           enabled: !_readOnly,
+          readOnly: _readOnly,
           text: '${two(d.hour)} 時',
           onTap: () => pick('時', [for (var h = 0; h < 24; h++) h], d.hour, (h) => '${two(h)} 時', (h) => d.hour = h),
         ),
         PickerButton(
           enabled: !_readOnly,
+          readOnly: _readOnly,
           text: '${two(d.minute)} 分',
           onTap: () => pick('分', [for (var m = 0; m < 60; m++) m], d.minute, (m) => '${two(m)} 分', (m) => d.minute = m),
         ),
@@ -288,6 +331,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
         Wrap(spacing: 6, runSpacing: 6, crossAxisAlignment: WrapCrossAlignment.center, children: [
           PickerButton(
             enabled: !_readOnly,
+            readOnly: _readOnly,
             text: d.groupId == null ? '選分組' : '${catalog.group(d.groupId!)?.emoji ?? ''} ${catalog.group(d.groupId!)?.name ?? ''}',
             onTap: () => pick<FoodGroup>('分組', groups, d.groupId == null ? null : catalog.group(d.groupId!),
                 (g) => '${g.emoji} ${g.name}', (g) {
@@ -300,6 +344,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
           ),
           PickerButton(
             enabled: !_readOnly && d.groupId != null,
+            readOnly: _readOnly,
             text: d.foodId == null ? '選食材' : '${catalog.food(d.foodId!)?.emoji ?? ''} ${catalog.food(d.foodId!)?.name ?? ''}',
             onTap: () => pick<Food>('食材', foods, d.foodId == null ? null : catalog.food(d.foodId!),
                 (f) => '${f.emoji} ${f.name}', (f) => d.foodId = f.id),
@@ -320,6 +365,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
           IgnorePointer(
             ignoring: _readOnly,
             child: ChoiceChips<Allergy>(
+              readOnly: _readOnly,
               options: Allergy.display,
               value: d.allergy,
               label: (a) => a.label,
@@ -336,6 +382,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
         IgnorePointer(
           ignoring: _readOnly,
           child: ChoiceChips<Reaction>(
+            readOnly: _readOnly,
             options: Reaction.values,
             value: d.reaction,
             label: (r) => r.label,
@@ -352,7 +399,8 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
           maxLength: Limits.noteMaxChars,
           minLines: 1,
           maxLines: 4,
-          decoration: InputDecoration(hintText: _readOnly ? '沒有備註' : '可以不填'),
+          style: _fieldStyle,
+          decoration: _fieldDecoration(hint: _readOnly ? '沒有備註' : '可以不填'),
           onChanged: (v) => setState(() => d.note = v),
         ),
       ),
@@ -371,6 +419,8 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
         child: TextField(
           controller: controller,
           readOnly: _readOnly,
+          style: _fieldStyle,
+          decoration: _fieldDecoration(),
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           // 0~999.99、最多 2 位小數,輸入時就限制。
           inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d{0,3}(\.\d{0,2})?'))],
@@ -383,10 +433,12 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
       const SizedBox(width: 8),
       PickerButton(
         enabled: !_readOnly,
+        readOnly: _readOnly,
         text: unit?.name ?? '單位',
         onTap: () async {
           if (_readOnly) return;
-          final u = await showWheelPicker<Unit>(context, title: '單位', items: units, initial: unit, label: (u) => u.name);
+          final u = await _lockSaveWhile(
+              () => showWheelPicker<Unit>(context, title: '單位', items: units, initial: unit, label: (u) => u.name));
           if (u != null) setState(() => onUnit(u.id));
         },
       ),
@@ -512,7 +564,19 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
     }
   }
 
+  /// 打開選單期間鎖住「儲存」,選單關掉後再過 Timing.saveUnlockAfterPicker 才解鎖。
+  Future<T?> _lockSaveWhile<T>(Future<T?> Function() open) async {
+    _saveUnlock?.cancel();
+    _saveLocked = true;
+    try {
+      return await open();
+    } finally {
+      _saveUnlock = Timer(Timing.saveUnlockAfterPicker, () => _saveLocked = false);
+    }
+  }
+
   Future<void> _save() async {
+    if (_saveLocked) return;
     final d = _draft!;
     if (d.groupId == null || d.foodId == null) {
       toast(context, '請選擇分組與食材');
@@ -553,18 +617,8 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
       await services.photos.afterCommit(photos: d.photos, previous: _original?.photoIds ?? const []);
       AppLog.info(isNew ? 'record.added' : 'record.updated', {'photos': d.photos.length});
       services.sync.requestSoon();
-      if (!mounted) return;
-      if (isNew) {
-        Navigator.pop(context);
-      } else {
-        final saved = await store.record(id);
-        final catalog = await ref.read(catalogProvider.future);
-        if (saved != null) {
-          _original = saved;
-          _setDraft(_fromRecord(saved, catalog));
-        }
-        setState(() => _mode = _Mode.view);
-      }
+      // 新增或修改,儲存成功都直接關掉。
+      if (mounted) Navigator.pop(context);
     } on InputProblem catch (e) {
       if (mounted) toast(context, e.message);
     } catch (e, st) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/constants.dart';
 import '../core/time.dart';
 import '../data/catalog_source.dart';
 import '../data/store.dart';
@@ -46,6 +47,16 @@ class AppSettings {
   int? get currentBabySeq => int.tryParse(raw[Keys.currentBaby] ?? '');
 
   String? get policyAck => raw[Keys.policyAck];
+
+  Duration get pickerAutoApply => _pickerDelay(Keys.pickerApplyMs, Timing.pickerAutoApply);
+
+  Duration get pickerIdleApply => _pickerDelay(Keys.pickerIdleMs, Timing.pickerIdleApply);
+
+  /// 沒設定或不是可以選的值時用預設。
+  Duration _pickerDelay(String key, Duration fallback) {
+    final d = Duration(milliseconds: int.tryParse(raw[key] ?? '') ?? -1);
+    return Timing.pickerDelayChoices.contains(d) ? d : fallback;
+  }
 }
 
 final settingsProvider = StreamProvider<AppSettings>(

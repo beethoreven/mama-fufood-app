@@ -57,6 +57,10 @@ final scenarios = <Scenario>[
   Scenario('day_list', go: (t) => openDay(t, 23), shows: () => find.text('10 月 23 日')),
   Scenario('record_add', go: (t) => openDay(t, 27), shows: () => find.text('儲存')),
   Scenario('record_view', go: openRecord, shows: () => find.text(_note)),
+  Scenario('record_edit', go: (t) async {
+    await openRecord(t);
+    await tap(t, find.text('修改'));
+  }, shows: () => find.text('修改中')),
   // 地瓜有 3 筆紀錄,食材旁邊會出現喜好與過敏的圖示(點了跳說明,觸控範圍 48 dp)。
   Scenario('record_view_icons',
       go: (t) => openRecord(t, food: '地瓜'),

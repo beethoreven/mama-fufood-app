@@ -18,7 +18,7 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   flutter_riverpod: 3.4.3
-  drift: 2.35.2
+  drift: 2.35.3
   drift_flutter: 0.3.1
   path_provider: 2.1.6
   path: 1.9.1
@@ -32,13 +32,15 @@ dependencies:
   uuid: 4.6.0
   image_picker: 1.2.4
   flutter_image_compress: 2.5.1
-  file_picker: 13.1.0
+  file_picker: 13.2.0
   package_info_plus: 10.2.2
   # 機型、電量、網路類型、儲存空間這些除錯資訊由 App 自己的原生程式取得
   # (android/.../DiagnosticsChannel.kt),不另外裝 device_info_plus、battery_plus、
   # connectivity_plus:後兩者的最新版互相衝突(2026-10-23),而且自己取得的欄位剛好是需要的那些。
   material_symbols_icons: 4.2960.0
   flutter_markdown_plus: 1.0.12
+  markdown: 7.3.1
+  url_launcher: 6.3.3
   characters: 1.4.1
   collection: 1.19.1
   crypto: 3.0.7
@@ -47,10 +49,10 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: 6.0.0
-  drift_dev: 2.35.1
-  # 最新是 2.17.1,但它要 build 5,而 drift_dev 2.35.1(最新)還只支援 build 4;
-  # 2.17.0 已被撤回,所以停在 2.16.2(2026-10-23)。drift_dev 支援 build 5 之後就升回最新。
-  build_runner: 2.16.2
+  plugin_platform_interface: 2.1.8
+  url_launcher_platform_interface: 2.3.2
+  drift_dev: 2.35.2
+  build_runner: 2.17.1
   flutter_launcher_icons: 0.14.4
   flutter_native_splash: 2.4.8
 

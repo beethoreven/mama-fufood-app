@@ -36,6 +36,8 @@ abstract final class Keys {
   static const currentBaby = 'current_baby';
   static const babySeqMax = 'baby_seq_max';
   static const policyAck = 'policy_ack';
+  static const pickerApplyMs = 'picker_apply_ms'; // 捲動選單放手後幾毫秒選定(只存在這支手機,不匯出、不同步)
+  static const pickerIdleMs = 'picker_idle_ms'; // 捲動選單沒動幾毫秒選定(同上)
 }
 
 FeedRecord recordFromRow(RecordRow row) => FeedRecord(

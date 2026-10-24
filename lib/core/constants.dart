@@ -37,8 +37,18 @@ abstract final class Limits {
 }
 
 abstract final class Timing {
-  /// 捲動選單停止 1 秒後自動套用並關閉(第 6 節)。
-  static const pickerAutoApply = Duration(seconds: 1);
+  /// 捲動選單放手、停住多久後自動套用並關閉(第 6 節)。這是預設值,使用者可以在 App 設定改。
+  static const pickerAutoApply = Duration(milliseconds: 500);
+
+  /// 捲動選單打開後一直沒動,過多久就選定目前停的那一項(通常要的就是第一項或原本的值,不用再點)。
+  /// 這是預設值,使用者可以在 App 設定改。
+  static const pickerIdleApply = Duration(milliseconds: 1500);
+
+  /// 上面兩個時間在 App 設定裡可以選的範圍:0.5~5 秒,每 0.5 秒一格。
+  static final pickerDelayChoices = List<Duration>.unmodifiable([for (var ms = 500; ms <= 5000; ms += 500) Duration(milliseconds: ms)]);
+
+  /// 紀錄介面的選單關掉後,再過這段時間「儲存」才有作用(選單開著時也不能存)。
+  static const saveUnlockAfterPicker = Duration(milliseconds: 500);
 
   /// 換月需拖曳超過一半寬度(只看距離,不看甩動速度)。
   static const monthSwipeFraction = 0.5;

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:markdown/markdown.dart' as md;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../theme.dart';
 import '../widgets/common.dart';
@@ -35,6 +37,9 @@ class _MarkdownAssetState extends State<MarkdownAsset> {
           ?header,
           MarkdownBody(
             data: snap.data!,
+            // 網址與 Email 都要能點:GitHub 版的語法會把文字裡的 Email 也變成 mailto: 連結。
+            extensionSet: md.ExtensionSet.gitHubFlavored,
+            onTapLink: (_, href, _) => openLink(context, href),
             styleSheet: MarkdownStyleSheet(
               h2: weight(t.titleMedium!, 500),
               h3: weight(t.titleSmall!, 500),
@@ -71,5 +76,18 @@ class LegalPage extends StatelessWidget {
   final String asset;
 
   @override
-  Widget build(BuildContext context) => MarkdownAsset(asset: asset, footer: const DisclaimerText(Disclaimers.general));
+  // key 用文件名稱:從「使用者條款」切到「隱私權政策」時,Flutter 會沿用同一個 State 只換 widget,
+  // 沒有 key 的話標題換了、內容(與捲動位置)還是上一份。
+  Widget build(BuildContext context) =>
+      MarkdownAsset(key: ValueKey(asset), asset: asset, footer: const DisclaimerText(Disclaimers.general));
+}
+
+/// 打開文件裡的連結:網址用瀏覽器,Email 用郵件 App。只接受 https 與 mailto。
+Future<void> openLink(BuildContext context, String? href) async {
+  final uri = href == null ? null : Uri.tryParse(href);
+  if (uri == null || !(uri.scheme == 'https' || uri.scheme == 'mailto')) return;
+  final ok = await launchUrl(uri, mode: LaunchMode.externalApplication).catchError((_) => false);
+  if (!ok && context.mounted) {
+    toast(context, uri.scheme == 'mailto' ? '找不到可以寄信的 App，請手動寄到 ${uri.path}' : '打不開這個網址');
+  }
 }

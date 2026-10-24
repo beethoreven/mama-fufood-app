@@ -6,7 +6,7 @@
 
 ## 一、誰負責處理你的資料
 
-阿舍老師（本名 沈思瑜）（以下稱「我們」），聯絡方式：tutorarthurouat@outlook.com。
+阿舍老師（以下稱「我們」），聯絡方式：tutorarthurouat@outlook.com。
 
 ## 二、我們會接觸到哪些資料
 
@@ -94,6 +94,6 @@
 
 ## 十二、聯絡我們
 
-阿舍老師（本名 沈思瑜）
+阿舍老師
 Email：tutorarthurouat@outlook.com
 網站：<https://beethoreven.github.io/mama-fufood-web/>

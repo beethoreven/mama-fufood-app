@@ -35,6 +35,15 @@
             android:value="2"/>
     </application>
     <queries>
+        <!-- 條款與政策裡的網址、Email 可以點:用瀏覽器開網址、用郵件 App 寫信(Android 11 起要先宣告)。 -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
         <intent>
             <action
                 android:name="android.intent.action.PROCESS_TEXT"/>

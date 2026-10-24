@@ -5,10 +5,35 @@ import 'package:flutter/material.dart';
 import '../../core/constants.dart';
 import '../theme.dart';
 
+/// 捲動選單自動選定的兩個時間(App 設定可以改)。放在 MaterialApp 的 builder 裡,
+/// 所有選單(包括 showDialog 開的)都讀得到;找不到時用預設值。
+class PickerTiming extends InheritedWidget {
+  const PickerTiming({super.key, required this.autoApply, required this.idleApply, required super.child});
+
+  final Duration autoApply;
+  final Duration idleApply;
+
+  static ({Duration autoApply, Duration idleApply}) of(BuildContext context) {
+    final t = context.dependOnInheritedWidgetOfExactType<PickerTiming>();
+    return (autoApply: t?.autoApply ?? Timing.pickerAutoApply, idleApply: t?.idleApply ?? Timing.pickerIdleApply);
+  }
+
+  @override
+  bool updateShouldNotify(PickerTiming old) => old.autoApply != autoApply || old.idleApply != idleApply;
+}
+
+/// 秒數的寫法:0.5、1、1.5 秒。
+String secondsText(Duration d) {
+  final s = d.inMilliseconds / 1000;
+  return s == s.roundToDouble() ? '${s.round()}' : '$s';
+}
+
 /// 捲動選單(SPEC 第 6 節):
-/// - 捲動停止 1 秒後自動套用並關閉(Timing.pickerAutoApply)。
+/// - 放手、捲動停住 0.5 秒後自動套用並關閉(預設值,見 [PickerTiming])。
+///   手指還按著時不算:放手之前不會選定;甩動時等滾輪停住才開始計時。
 /// - 自動套用前點選單外面:關閉選單、當作沒開過(維持原值,回傳 null)。
-/// - 點某一項會捲到那一項,同樣停 1 秒後套用。
+/// - 點某一項會捲到那一項,同樣停住 0.5 秒後套用。
+/// - 打開後完全沒動,1.5 秒後選定目前停的那一項(預設值,見 [PickerTiming])。
 Future<T?> showWheelPicker<T>(
   BuildContext context, {
   required List<T> items,
@@ -39,6 +64,7 @@ class _WheelPickerDialogState<T> extends State<_WheelPickerDialog<T>> {
   late final FixedExtentScrollController _controller;
   Timer? _timer;
   late int _index;
+  late final ({Duration autoApply, Duration idleApply}) _timing = PickerTiming.of(context);
 
   static const _itemExtent = 48.0;
 
@@ -51,15 +77,22 @@ class _WheelPickerDialogState<T> extends State<_WheelPickerDialog<T>> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // 第一次拿到 context(讀得到設定)時開始算「沒動多久」。
+    if (_timer == null) _scheduleApply(_timing.idleApply);
+  }
+
+  @override
   void dispose() {
     _timer?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
-  void _scheduleApply() {
+  void _scheduleApply([Duration? delay]) {
     _timer?.cancel();
-    _timer = Timer(Timing.pickerAutoApply, () {
+    _timer = Timer(delay ?? _timing.autoApply, () {
       if (mounted) Navigator.of(context).pop(widget.items[_index]);
     });
   }
@@ -80,7 +113,8 @@ class _WheelPickerDialogState<T> extends State<_WheelPickerDialog<T>> {
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Text(widget.title!, style: Theme.of(context).textTheme.titleSmall),
               ),
-            Text('停 1 秒自動選定，點外面取消', style: Theme.of(context).textTheme.labelSmall),
+            Text('放手 ${secondsText(_timing.autoApply)} 秒後自動選定；\n沒動的話 ${secondsText(_timing.idleApply)} 秒後選中間這一項。點外面取消。',
+                textAlign: TextAlign.center, style: Theme.of(context).textTheme.labelSmall),
             const SizedBox(height: 8),
             SizedBox(
               height: _itemExtent * (visible < 3 ? 3 : visible),
@@ -137,15 +171,28 @@ class _WheelPickerDialogState<T> extends State<_WheelPickerDialog<T>> {
 
 /// 年月選擇鈕(膠囊形、次要底色)。
 class PickerButton extends StatelessWidget {
-  const PickerButton({super.key, required this.text, required this.onTap, this.enabled = true});
+  const PickerButton({super.key, required this.text, required this.onTap, this.enabled = true, this.readOnly = false});
 
   final String text;
   final VoidCallback onTap;
   final bool enabled;
 
+  /// 只能看(例如檢視紀錄):不畫底色與箭頭、字用灰色,看起來就是鎖住的文字。
+  /// 和 [enabled] 為 false 不同:那是「現在還不能選」(例如還沒選分組時的食材),仍然畫成按鈕。
+  final bool readOnly;
+
   @override
   Widget build(BuildContext context) {
     final c = context.colors;
+    if (readOnly) {
+      return ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 48),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 10),
+          child: Text(text, style: weight(Theme.of(context).textTheme.bodyLarge!.copyWith(color: c.muted), 500)),
+        ),
+      );
+    }
     return Material(
       color: enabled ? c.surface2 : c.surface2.withValues(alpha: 0.4),
       shape: const StadiumBorder(),

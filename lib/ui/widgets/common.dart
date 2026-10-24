@@ -232,12 +232,16 @@ class AppCard extends StatelessWidget {
 
 /// 膠囊形的單選選項(選中:選中底色 + 主色外框 + 打勾)。再點一次取消。
 class ChoiceChips<T> extends StatelessWidget {
-  const ChoiceChips({super.key, required this.options, required this.value, required this.label, required this.onChanged});
+  const ChoiceChips(
+      {super.key, required this.options, required this.value, required this.label, required this.onChanged, this.readOnly = false});
 
   final List<T> options;
   final T? value;
   final String Function(T) label;
   final ValueChanged<T?> onChanged;
+
+  /// 只能看:不能點,字與選中的框線都用灰色,看起來是鎖住的。
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -249,20 +253,24 @@ class ChoiceChips<T> extends StatelessWidget {
         for (final o in options)
           Builder(builder: (context) {
             final selected = o == value;
+            final mark = readOnly ? c.muted : c.accent;
             return Material(
-              color: selected ? c.accentSoft : c.surface2,
-              shape: StadiumBorder(side: BorderSide(color: selected ? c.accent : Colors.transparent, width: 1.5)),
+              color: selected && !readOnly ? c.accentSoft : c.surface2,
+              shape: StadiumBorder(side: BorderSide(color: selected ? mark : Colors.transparent, width: 1.5)),
               child: InkWell(
                 customBorder: const StadiumBorder(),
-                onTap: () => onChanged(selected ? null : o),
+                onTap: readOnly ? null : () => onChanged(selected ? null : o),
                 child: ConstrainedBox(
                   // 觸控目標至少 48 dp(SPEC 第 1 節;test/ui/layout/ 會檢查)。
                   constraints: const BoxConstraints(minHeight: 48),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      if (selected) ...[Icon(Icons.check_rounded, size: 18, color: c.accent), const SizedBox(width: 4)],
-                      Text(label(o), style: Theme.of(context).textTheme.labelMedium),
+                      if (selected) ...[Icon(Icons.check_rounded, size: 18, color: mark), const SizedBox(width: 4)],
+                      Text(label(o),
+                          style: readOnly
+                              ? Theme.of(context).textTheme.labelMedium!.copyWith(color: c.muted)
+                              : Theme.of(context).textTheme.labelMedium),
                     ]),
                   ),
                 ),

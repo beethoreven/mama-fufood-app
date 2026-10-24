@@ -25,7 +25,7 @@ Catalog catalog() => Catalog(
       unitVersion: 'v',
     );
 
-FeedRecord r(int food, int eatenCenti, int unit, Day day) => FeedRecord(
+FeedRecord r(int food, int eatenCenti, int unit, Day day, {Allergy? allergy}) => FeedRecord(
       id: newId(),
       babySeq: 1,
       timeUtcMs: TimeRules.toUtcMs(day, 9, 0, 480),
@@ -35,7 +35,7 @@ FeedRecord r(int food, int eatenCenti, int unit, Day day) => FeedRecord(
       preparedUnitId: 1,
       eatenCenti: eatenCenti,
       eatenUnitId: unit,
-      allergy: null,
+      allergy: allergy,
       reaction: null,
       note: '',
       photoIds: const [],
@@ -118,5 +118,16 @@ void main() {
 
   test('字數：一個 emoji 算一個字', () {
     expect(charCount('小寶👨‍👩‍👧'), 3);
+  });
+
+  test('月曆標淡紅色：當天過敏標那一天，隔天過敏標下一天（跨月也算）', () {
+    final days = allergyMarkedDays([
+      r(1, 100, 1, Day(2026, 10, 5), allergy: Allergy.sameDay),
+      r(1, 100, 1, Day(2026, 10, 9), allergy: Allergy.nextDay),
+      r(1, 100, 1, Day(2026, 10, 12), allergy: Allergy.none),
+      r(1, 100, 1, Day(2026, 10, 14)),
+      r(1, 100, 1, Day(2026, 10, 31), allergy: Allergy.nextDay),
+    ]);
+    expect(days, {Day(2026, 10, 5), Day(2026, 10, 10), Day(2026, 11, 1)});
   });
 }
