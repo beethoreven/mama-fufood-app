@@ -49,7 +49,7 @@
 
 - 我們的伺服器與資料庫位於**新加坡**(Render、Neon 的機房);意見回饋存在這裡。
 - 雲端同步與匯出的資料,存在你自己的 Google 帳號,由 Google 保管。
-- 協助我們運作的服務:Google(登入、雲端硬碟、Google Play)、Render(主機,前端有 Cloudflare 的防護)、Neon(資料庫)。這些服務只為我們提供技術服務;Google 的隱私權政策見 <https://policies.google.com/privacy>,【Render、Neon 的隱私權政策連結待補】。
+- 協助我們運作的服務:Google(登入、雲端硬碟、Google Play)、Render(主機,前端有 Cloudflare 的防護)、Neon(資料庫)。這些服務只為我們提供技術服務;Google 的隱私權政策見 <https://policies.google.com/privacy>,Render 的見 <https://render.com/privacy>,Neon 的見 <https://neon.com/privacy-policy>。
 - 除了法律要求(例如法院或檢調機關依法調閱)以外,我們不會把你的資料提供給其他人。
 
 ## 六、Google 使用者資料的使用
@@ -96,4 +96,4 @@
 
 阿舍老師(本名 沈思瑜)
 Email:【聯絡信箱】
-網站:【網站網址】
+網站:<https://beethoreven.github.io/mama-fufood-web/>
