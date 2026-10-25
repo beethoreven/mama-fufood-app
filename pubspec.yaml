@@ -23,6 +23,8 @@ dependencies:
   path_provider: 2.1.6
   path: 1.9.1
   google_sign_in: 7.2.0
+  # 雲端硬碟授權直接指定帳號(編號與 Email),不用先「自動登入」;google_sign_in 本身沒有開放這個參數。
+  google_sign_in_platform_interface: 3.1.0
   googleapis: 17.0.0
   googleapis_auth: 2.3.5
   http: 1.6.0

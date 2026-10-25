@@ -25,7 +25,7 @@ class ApiError implements Exception {
   String toString() => message;
 }
 
-/// 呼叫後端。每一支都帶 Google ID token(每次一張新的,見 AuthService.idToken)。
+/// 呼叫後端。每一支都帶 App 的通行證(見 AuthService.backendToken;登入時用 Google ID Token 換來的)。
 class ApiClient {
   ApiClient(this.auth, {http.Client? client}) : _http = client ?? http.Client();
 
@@ -37,7 +37,7 @@ class ApiClient {
 
   Future<Map<String, dynamic>> _post(String path, Object body, {bool gzipBody = false, bool retried = false}) async {
     if (!Env.backendConfigured) throw const ApiError(0, 'not_configured', '這個版本還沒設定後端網址');
-    final token = await auth.idToken();
+    final token = await auth.backendToken();
     final raw = utf8.encode(jsonEncode(body));
     final headers = {
       'Authorization': 'Bearer $token',
@@ -55,8 +55,9 @@ class ApiClient {
       throw const ApiError(0, 'network', '無法連線到伺服器，請確認網路後再試');
     }
     if (resp.statusCode == 401 && !retried) {
-      // ID token 可能剛好過期:丟掉、換一張新的再試一次。
-      auth.invalidateIdToken();
+      // 通行證無效或過期:丟掉,再試一次(這次登入的 ID Token 還在的話會換一張新的;
+      // 換不到就丟 NotSignedIn,請使用者重新登入)。
+      await auth.invalidateBackendToken();
       return _post(path, body, gzipBody: gzipBody, retried: true);
     }
     Map<String, dynamic> json;
@@ -71,6 +72,34 @@ class ApiClient {
           (json['error'] as String?) ?? '伺服器回應錯誤（${resp.statusCode}）', json);
     }
     return json;
+  }
+
+  /// 登入時呼叫一次:用 Google ID Token 換 App 的通行證。
+  Future<({String token, int expiresAt})> createSession(String idToken) async {
+    if (!Env.backendConfigured) throw const ApiError(0, 'not_configured', '這個版本還沒設定後端網址');
+    http.Response resp;
+    try {
+      resp = await _http
+          .post(_url('/api/v1/session'), headers: {'Authorization': 'Bearer $idToken'})
+          .timeout(_timeout);
+    } catch (e) {
+      AppLog.warn('api.network_error', {'path': '/api/v1/session', 'type': e.runtimeType.toString()});
+      throw const ApiError(0, 'network', '無法連線到伺服器，請確認網路後再試');
+    }
+    Map<String, dynamic> json;
+    try {
+      json = (jsonDecode(utf8.decode(resp.bodyBytes)) as Map).cast<String, dynamic>();
+    } catch (_) {
+      json = {};
+    }
+    AppLog.info('api.response', {'path': '/api/v1/session', 'status': resp.statusCode, 'code': json['code'] as String?});
+    final token = json['token'];
+    final exp = json['expires_at'];
+    if (resp.statusCode != 200 || token is! String || exp is! int) {
+      throw ApiError(resp.statusCode, (json['code'] as String?) ?? 'http_${resp.statusCode}',
+          (json['error'] as String?) ?? '伺服器回應錯誤（${resp.statusCode}）', json);
+    }
+    return (token: token, expiresAt: exp);
   }
 
   /// 每日檢查(SPEC 第 3 節第 2 項)。

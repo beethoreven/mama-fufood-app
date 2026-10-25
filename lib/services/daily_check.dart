@@ -123,6 +123,10 @@ class DailyCheckService extends ChangeNotifier {
       await store.setSetting(CheckKeys.lastOkDay, today);
       await store.setSetting(CheckKeys.lastAt, '${DateTime.now().millisecondsSinceEpoch}');
       await store.setSetting(CheckKeys.checksLeft, '${res['checks_left'] ?? ''}');
+      // 後端順便換了一張新的通行證(舊的發出一段時間了)。
+      final renewed = res['session_token'];
+      final renewedExp = res['session_expires_at'];
+      if (renewed is String && renewedExp is int) await auth.renewBackendToken(renewed, renewedExp);
       AppLog.info('check.ok', {'updated': updated, 'force': res['force_update'] == true});
       notifyListeners();
       if (notice != null) return notice;

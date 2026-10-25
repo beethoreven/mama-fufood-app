@@ -1,8 +1,8 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
 
 import '../core/env.dart';
 import '../core/log.dart';
@@ -42,63 +42,85 @@ class DriveNotAuthorized implements Exception {
   String toString() => '需要雲端硬碟的權限';
 }
 
+/// 換通行證:拿 Google 的 ID Token 跟後端換 App 的通行證(見 ApiClient.createSession)。
+typedef SessionExchange = Future<({String token, int expiresAt})> Function(String idToken);
+
+/// 存登入狀態的地方(App 用 Store 的設定;測試可以給記憶體版)。
+abstract class AuthStorage {
+  Future<String?> read(String key);
+  Future<void> write(String key, String? value);
+}
+
 /// Google 登入(SPEC 第 6 節)。
 ///
-/// - 登入時只要求基本資料(Email、名稱、頭像);雲端硬碟權限在開啟雲端功能或
-///   第一次匯出、匯入時才要求。
+/// - **登入一次就記住**:使用者按「登入」後,記住是哪個帳號,並用 Google 的 ID Token 跟後端換一張
+///   App 的通行證(後端 auth_utils/app_tokens.py)存在手機上。之後開 App 直接是登入狀態,
+///   後端請求都帶通行證;只有按「登出」才登出。
+///   ★ 不在開 App 時請系統「自動登入」:系統不肯時,Google 的登入外掛會自己改跳選帳號畫面,
+///     使用者按掉就變成沒登入(實際發生過,重開 App 就跳選帳號、登入不見)。
+/// - 登入時只要求基本資料(Email、名稱、頭像);雲端硬碟權限在開啟雲端功能或第一次匯出、
+///   匯入時才要求,用 Google 的授權 API 拿,不需要先「自動登入」。
 /// - Android 上用系統的帳號選擇畫面(Credential Manager),不開瀏覽器(google_sign_in 7)。
-/// - ★ 後端請求每次都要帶一張**新的** ID token(約一小時過期),不能把舊的當長期憑證。
-///   idToken() 會在快過期前換一張新的。
 class AuthService extends ChangeNotifier {
-  AuthService({GoogleSignIn? signIn}) : _signIn = signIn ?? GoogleSignIn.instance;
+  AuthService(this._storage, {GoogleSignIn? signIn}) : _signIn = signIn ?? GoogleSignIn.instance;
 
+  final AuthStorage _storage;
   final GoogleSignIn _signIn;
-  GoogleSignInAccount? _account;
+
+  /// 換通行證的方法,建立服務時接上(ApiClient 也要用 AuthService,所以不能在建構時給)。
+  SessionExchange? exchange;
+
+  SignedInUser? _user;
+  String? _appToken;
+  DateTime? _appTokenExpiry;
+
+  /// 這次開 App 之後按登入拿到的 Google ID Token(約一小時過期);只用來換通行證。
   String? _idToken;
   DateTime? _idTokenExpiry;
   bool _initialized = false;
 
-  SignedInUser? get user {
-    final a = _account;
-    if (a == null) return null;
-    return SignedInUser(sub: a.id, email: a.email, name: a.displayName, photoUrl: a.photoUrl);
-  }
+  static const _keyUser = 'auth_user';
+  static const _keyToken = 'auth_app_token';
+  static const _keyTokenExpiry = 'auth_app_token_exp';
 
-  bool get signedIn => _account != null;
+  SignedInUser? get user => _user;
 
+  bool get signedIn => _user != null;
+
+  /// 開 App 時呼叫:讀回記住的帳號與通行證,並準備好 Google 登入(不跳任何畫面)。
   Future<void> init() async {
-    if (_initialized || !Env.googleConfigured) return;
+    if (_initialized) return;
     _initialized = true;
     try {
+      final raw = await _storage.read(_keyUser);
+      if (raw != null) {
+        final m = (jsonDecode(raw) as Map).cast<String, Object?>();
+        _setUser(SignedInUser(
+            sub: m['sub']! as String,
+            email: m['email']! as String,
+            name: m['name'] as String?,
+            photoUrl: m['photo'] as String?));
+        _appToken = await _storage.read(_keyToken);
+        final exp = int.tryParse(await _storage.read(_keyTokenExpiry) ?? '');
+        _appTokenExpiry = exp == null ? null : DateTime.fromMillisecondsSinceEpoch(exp * 1000, isUtc: true);
+      }
+      AppLog.info(_user != null ? 'auth.restored' : 'auth.restore_none', {'token': _appToken != null});
+    } catch (e, st) {
+      AppLog.error('auth.restore_failed', e, st);
+    }
+    if (!Env.googleConfigured) return;
+    try {
       await _signIn.initialize(serverClientId: Env.webClientId);
-      _signIn.authenticationEvents.listen((event) {
-        switch (event) {
-          case GoogleSignInAuthenticationEventSignIn():
-            _setAccount(event.user);
-          case GoogleSignInAuthenticationEventSignOut():
-            _setAccount(null);
-        }
-      }, onError: (Object e) => AppLog.warn('auth.event_error', {'type': e.runtimeType.toString()}));
-      // 之前登入過的話,不跳畫面直接恢復登入狀態。
-      final account = await _signIn.attemptLightweightAuthentication();
-      if (account != null) _setAccount(account);
     } catch (e, st) {
       AppLog.error('auth.init_failed', e, st);
     }
   }
 
-  void _setAccount(GoogleSignInAccount? account) {
-    _account = account;
+  void _setUser(SignedInUser? user) {
+    _user = user;
     // 送出的診斷資料裡,出現帳號的顯示名稱(通常是本名)就遮蔽(SPEC 第 10 節)。
-    AppLog.accountName = account?.displayName;
-    final token = account?.authentication.idToken;
-    _rememberToken(token);
+    AppLog.accountName = user?.name;
     notifyListeners();
-  }
-
-  void _rememberToken(String? token) {
-    _idToken = token;
-    _idTokenExpiry = token == null ? null : _expiryOf(token);
   }
 
   static DateTime? _expiryOf(String jwt) {
@@ -111,68 +133,116 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// 使用者按下登入。
+  /// 使用者按下登入:選帳號 → 記住帳號 → 換通行證(連不上後端也算登入成功,之後要用時再換)。
   Future<SignedInUser> signIn() async {
     if (!Env.googleConfigured) throw StateError('這個版本還沒設定 Google 登入');
     await init();
     final account = await _signIn.authenticate();
-    _setAccount(account);
+    final user = SignedInUser(sub: account.id, email: account.email, name: account.displayName, photoUrl: account.photoUrl);
+    await _storage.write(
+        _keyUser, jsonEncode({'sub': user.sub, 'email': user.email, 'name': user.name, 'photo': user.photoUrl}));
+    if (_user?.sub != user.sub) await _saveAppToken(null, null);
+    _idToken = account.authentication.idToken;
+    _idTokenExpiry = _idToken == null ? null : _expiryOf(_idToken!);
+    _setUser(user);
     AppLog.info('auth.signed_in');
-    return user!;
+    try {
+      await _exchange();
+    } catch (e) {
+      AppLog.warn('auth.exchange_failed', {'type': e.runtimeType.toString()});
+    }
+    return user;
   }
 
   Future<void> signOut() async {
     try {
-      await _signIn.signOut();
+      if (Env.googleConfigured) await _signIn.signOut();
+    } catch (e) {
+      AppLog.warn('auth.signout_failed', {'type': e.runtimeType.toString()});
     } finally {
-      _setAccount(null);
+      await _storage.write(_keyUser, null);
+      await _saveAppToken(null, null);
+      _idToken = null;
+      _idTokenExpiry = null;
+      _setUser(null);
       AppLog.info('auth.signed_out');
     }
   }
 
-  /// 給後端的 ID token:手上的這張還有 5 分鐘以上就用它,否則不跳畫面換一張新的。
-  /// 換不到(需要使用者操作)就丟 NotSignedIn,呼叫端請使用者重新登入。
-  Future<String> idToken() async {
-    final expiry = _idTokenExpiry;
-    final now = TimeRules.now().toUtc();
-    if (_idToken != null && expiry != null && expiry.isAfter(now.add(const Duration(minutes: 5)))) {
-      return _idToken!;
-    }
-    if (!Env.googleConfigured) throw const NotSignedIn();
-    await init();
-    final account = await _signIn.attemptLightweightAuthentication();
-    if (account == null) throw const NotSignedIn();
-    _setAccount(account);
-    final token = _idToken;
-    final fresh = _idTokenExpiry;
-    if (token == null || (fresh != null && !fresh.isAfter(now.add(const Duration(minutes: 1))))) {
-      throw const NotSignedIn();
-    }
-    return token;
+  Future<void> _saveAppToken(String? token, int? expiresAt) async {
+    _appToken = token;
+    _appTokenExpiry = expiresAt == null ? null : DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000, isUtc: true);
+    await _storage.write(_keyToken, token);
+    await _storage.write(_keyTokenExpiry, expiresAt?.toString());
   }
 
-  /// 後端回 401 時呼叫:丟掉手上的 token,下次 idToken() 會換新的。
-  void invalidateIdToken() => _rememberToken(null);
+  /// 測試用:模擬「這次開 App 有按登入、手上有一張 ID Token」(真的登入要經過 Google 的畫面)。
+  @visibleForTesting
+  void debugSetIdToken(String idToken, DateTime expiry) {
+    _idToken = idToken;
+    _idTokenExpiry = expiry;
+  }
+
+  /// 用這次登入拿到的 ID Token 換通行證。ID Token 已經過期就沒辦法換,要使用者重新登入。
+  Future<String> _exchange() async {
+    final idToken = _idToken;
+    final expiry = _idTokenExpiry;
+    final fn = exchange;
+    if (idToken == null || fn == null || (expiry != null && !expiry.isAfter(TimeRules.now().toUtc()))) {
+      throw const NotSignedIn();
+    }
+    final result = await fn(idToken);
+    await _saveAppToken(result.token, result.expiresAt);
+    AppLog.info('auth.session_created');
+    return result.token;
+  }
+
+  /// 給後端的通行證。手上沒有(或快過期)就用這次登入的 ID Token 換一張;換不到就丟 NotSignedIn,
+  /// 呼叫端請使用者重新登入。**不會**自己跳任何畫面。
+  Future<String> backendToken() async {
+    if (_user == null) throw const NotSignedIn();
+    final token = _appToken;
+    final expiry = _appTokenExpiry;
+    if (token != null && expiry != null && expiry.isAfter(TimeRules.now().toUtc().add(const Duration(days: 1)))) {
+      return token;
+    }
+    return _exchange();
+  }
+
+  /// 後端在每日檢查的回應裡附了一張新的通行證(舊的發出一段時間了):換上新的。
+  Future<void> renewBackendToken(String token, int expiresAt) async {
+    if (_user == null) return;
+    await _saveAppToken(token, expiresAt);
+    AppLog.info('auth.session_renewed');
+  }
+
+  /// 後端回 401(通行證無效或過期):丟掉,下次 backendToken() 會試著重換,換不到就要重新登入。
+  Future<void> invalidateBackendToken() => _saveAppToken(null, null);
+
+  AuthorizationRequestDetails _driveRequest(bool prompt) => AuthorizationRequestDetails(
+      scopes: DriveScopes.all, userId: _user?.sub, email: _user?.email, promptIfUnauthorized: prompt);
 
   /// 雲端硬碟的存取權杖。interactive = true 時,沒有權限會跳出 Google 的授權畫面
   /// (只能在使用者按下按鈕時用);false 時沒有權限就丟 DriveNotAuthorized。
+  /// 用記住的帳號(編號與 Email)指定要哪個帳號的授權,不需要先「自動登入」。
   Future<String> driveAccessToken({required bool interactive}) async {
-    final account = _account;
-    if (account == null) throw const NotSignedIn();
-    final client = account.authorizationClient;
-    var authz = await client.authorizationForScopes(DriveScopes.all);
-    if (authz == null) {
+    if (_user == null) throw const NotSignedIn();
+    await init();
+    final platform = GoogleSignInPlatform.instance;
+    var tokens = await platform.clientAuthorizationTokensForScopes(
+        ClientAuthorizationTokensForScopesParameters(request: _driveRequest(false)));
+    if (tokens == null) {
       if (!interactive) throw const DriveNotAuthorized();
-      authz = await client.authorizeScopes(DriveScopes.all);
+      tokens = await platform.clientAuthorizationTokensForScopes(
+          ClientAuthorizationTokensForScopesParameters(request: _driveRequest(true)));
+      if (tokens == null) throw const DriveNotAuthorized();
       AppLog.info('auth.drive_authorized');
     }
-    return authz.accessToken;
+    return tokens.accessToken;
   }
 
   /// 雲端硬碟回 401 時呼叫:這張存取權杖已經失效,讓系統下次給新的。
   Future<void> dropDriveToken(String accessToken) async {
-    final account = _account;
-    if (account == null) return;
-    await account.authorizationClient.clearAuthorizationToken(accessToken: accessToken);
+    await GoogleSignInPlatform.instance.clearAuthorizationToken(ClearAuthorizationTokenParams(accessToken: accessToken));
   }
 }

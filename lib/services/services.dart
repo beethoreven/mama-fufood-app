@@ -46,7 +46,7 @@ class Services {
     final store = Store(AppDb.open());
     final diagnostics = Diagnostics(store);
     await diagnostics.init();
-    final auth = AuthService();
+    final auth = AuthService(StoreAuthStorage(store));
     final services = Services._(
       store: store,
       auth: auth,
@@ -62,11 +62,12 @@ class Services {
   /// 畫面測試用(test/ui/):資料庫由測試給(放在記憶體),沒有登入、不連網。
   @visibleForTesting
   factory Services.forTest({required Store store, required Diagnostics diagnostics, required PackageInfo package}) {
-    final auth = AuthService();
+    final auth = AuthService(StoreAuthStorage(store));
     return Services._(store: store, auth: auth, api: ApiClient(auth), diagnostics: diagnostics, package: package).._wire();
   }
 
   void _wire() {
+    auth.exchange = api.createSession;
     check = DailyCheckService(store: store, auth: auth, api: api, appVersion: () => appVersion);
     photos = PhotoService(
       store,
@@ -104,4 +105,17 @@ class Services {
       await feedback.retryQueued();
     } catch (_) {}
   }
+}
+
+/// 登入狀態存在本機資料庫的設定裡(和其他設定一樣,會跟著 Android 的自動備份)。
+class StoreAuthStorage implements AuthStorage {
+  StoreAuthStorage(this.store);
+
+  final Store store;
+
+  @override
+  Future<String?> read(String key) => store.getSetting(key);
+
+  @override
+  Future<void> write(String key, String? value) => store.setSetting(key, value);
 }
