@@ -83,7 +83,10 @@ class GoogleDriveStore implements CloudStore {
 
   Future<T> _call<T>(Future<T> Function(drive.DriveApi api) action,
       {bool retried = false, Duration timeout = _normalTimeout}) async {
-    final token = await auth.driveAccessToken(interactive: interactive);
+    // 不跳授權畫面時,拿權杖也要有時間上限(系統沒有回應時不要讓呼叫的人一直等);
+    // 要跳畫面時是等使用者操作,不設上限。
+    final tokenRequest = auth.driveAccessToken(interactive: interactive);
+    final token = interactive ? await tokenRequest : await tokenRequest.timeout(_normalTimeout);
     final client = gauth.authenticatedClient(
       IOClient(HttpClient()..connectionTimeout = const Duration(seconds: 20)),
       gauth.AccessCredentials(

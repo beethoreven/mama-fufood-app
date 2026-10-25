@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'dart:io' show gzip;
+import 'dart:io' show Platform, gzip;
 
 import 'package:http/http.dart' as http;
 
@@ -75,7 +75,8 @@ class ApiClient {
 
   /// 每日檢查(SPEC 第 3 節第 2 項)。
   Future<Map<String, dynamic>> check({required String appVersion, required Map<String, Map<String, Object?>> datasets}) =>
-      _post('/api/v1/check', {'app_version': appVersion, 'platform': 'android', 'datasets': datasets});
+      _post('/api/v1/check',
+          {'app_version': appVersion, 'platform': Platform.isIOS ? 'ios' : 'android', 'datasets': datasets});
 
   /// 意見回饋。
   Future<Map<String, dynamic>> feedback(Map<String, Object?> body) => _post('/api/v1/feedback', body);

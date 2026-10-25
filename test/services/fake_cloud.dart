@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -8,6 +9,9 @@ class FakeCloud implements CloudStore {
   final Map<String, FakeEntry> files = {};
   var _next = 0;
   bool offline = false;
+
+  /// 下載永遠不回應(模擬網路卡住)。
+  bool hangDownloads = false;
 
   void _check() {
     if (offline) throw const CloudError('network', '無法連上 Google 雲端硬碟，請確認網路後再試');
@@ -71,6 +75,7 @@ class FakeCloud implements CloudStore {
   @override
   Future<void> downloadToFile(String fileId, File target) async {
     _check();
+    if (hangDownloads) await Completer<void>().future;
     final e = files[fileId];
     if (e == null) throw const CloudError('not_found', 'not found');
     await target.writeAsBytes(e.bytes);

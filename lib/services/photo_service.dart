@@ -35,9 +35,12 @@ class DraftPhoto {
 ///   上傳並確認成功(核對 MD5)後才刪本機照片;斷網只影響照片讀取。
 /// - 關掉開關只停止上傳新照片,已經在雲端的照片照常顯示。
 class PhotoService {
-  PhotoService(this.store, {required this.cloud, required this.cloudEnabled});
+  PhotoService(this.store, {required this.cloud, required this.cloudEnabled, this.loadTimeout = PhotoSpec.loadTimeout});
 
   final Store store;
+
+  /// 顯示一張照片最多等多久(見 PhotoSpec.loadTimeout;測試會改短)。
+  final Duration loadTimeout;
 
   /// 需要時才建立(要登入、要有雲端硬碟權限)。
   final CloudStore? Function() cloud;
@@ -153,8 +156,19 @@ class PhotoService {
 
   /// 拿到可以顯示的檔案:本機的、下載過的,或現在從雲端下載(沒網路回 null)。
   /// 同一張照片同時被要好幾次時共用同一個下載(兩個下載寫同一個暫存檔會互相覆蓋)。
-  Future<File?> resolve(String id) =>
-      _resolving.putIfAbsent(id, () => _resolve(id).whenComplete(() => _resolving.remove(id)));
+  /// 等太久(網路卡住、授權沒有回應)就當作拿不到,畫面不會一直轉圈;下次再要時重新試。
+  ///
+  /// ★ whenComplete 的清理一定要寫成區塊、不回傳值:寫成 `() => _resolving.remove(id)` 的話,
+  ///   remove 會回傳存在表裡的那個 Future——也就是 whenComplete 自己——whenComplete 會等它,
+  ///   等於自己等自己,永遠不會完成(所有已存的照片因此一直轉圈)。
+  Future<File?> resolve(String id) => _resolving.putIfAbsent(
+      id,
+      () => _resolve(id).timeout(loadTimeout, onTimeout: () {
+            AppLog.warn('photo.resolve_timeout');
+            return null;
+          }).whenComplete(() {
+            _resolving.remove(id);
+          }));
 
   Future<File?> _resolve(String id) async {
     final local = await _localFile(id);

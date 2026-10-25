@@ -76,6 +76,10 @@ abstract final class PhotoSpec {
   /// 照片一律重新壓縮成 JPEG:長邊 1280 像素、品質 80,移除拍攝地點等附帶資訊(第 13 節)。
   static const longEdge = 1280;
   static const quality = 80;
+
+  /// 顯示一張只在雲端的照片,最多等這麼久(下載一張約 0.3 MB 的照片);超過就顯示「無法顯示」,
+  /// 不讓縮圖一直轉圈。下次打開會再試。
+  static const loadTimeout = Duration(seconds: 45);
 }
 
 abstract final class FeedbackSpec {
