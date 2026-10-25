@@ -89,11 +89,14 @@ Future<void> runScenario(
   double scale, {
   double dpr = 1,
   bool ignoreOverflow = false,
+  Future<void> Function(Services services)? seed,
   required Future<void> Function() check,
 }) async {
-  final services = (await tester.runAsync<Services>(
-    () => seededServices(policyAccepted: s.policyAccepted, theme: s.theme),
-  ))!;
+  final services = (await tester.runAsync<Services>(() async {
+    final services = await seededServices(policyAccepted: s.policyAccepted, theme: s.theme);
+    await seed?.call(services);
+    return services;
+  }))!;
   final errors = ErrorLog.start();
   Object? failure;
   StackTrace? stack;

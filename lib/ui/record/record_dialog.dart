@@ -492,13 +492,70 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
             child: PhotoThumb(photo: p, service: service, fit: BoxFit.contain),
           ),
           Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+            // 修改中:先從草稿拿掉,按「儲存」才生效。檢視中:確認後直接從紀錄刪掉(不用先按「修改」)。
             if (!_readOnly) TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('移除這張照片')),
+            if (_readOnly)
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text('刪除這張照片', style: TextStyle(color: context.colors.danger)),
+              ),
             TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('關閉')),
           ]),
         ]),
       ),
     );
-    if (remove == true) setState(() => d.photos = d.photos.where((x) => x.id != p.id).toList());
+    if (remove != true || !mounted) return;
+    if (!_readOnly) {
+      setState(() => d.photos = d.photos.where((x) => x.id != p.id).toList());
+      return;
+    }
+    final ok = await confirm(context, title: '刪除這張照片？', message: '刪除後無法復原。', ok: '刪除', danger: true);
+    if (ok && mounted) await _deleteSavedPhoto(p.id);
+  }
+
+  /// 檢視中直接刪一張已存的照片:更新紀錄(少這張照片),再刪照片檔(雲端有一份的話標記待刪)。
+  Future<void> _deleteSavedPhoto(String photoId) async {
+    final original = _original;
+    if (original == null) return;
+    setState(() => _busy = true);
+    final services = ref.read(servicesProvider);
+    final store = ref.read(storeProvider);
+    try {
+      final keep = [for (final id in original.photoIds) if (id != photoId) id];
+      final updated = FeedRecord(
+        id: original.id,
+        babySeq: original.babySeq,
+        timeUtcMs: original.timeUtcMs,
+        tzOffsetMinutes: original.tzOffsetMinutes,
+        foodId: original.foodId,
+        preparedCenti: original.preparedCenti,
+        preparedUnitId: original.preparedUnitId,
+        eatenCenti: original.eatenCenti,
+        eatenUnitId: original.eatenUnitId,
+        allergy: original.allergy,
+        reaction: original.reaction,
+        note: original.note,
+        photoIds: keep,
+        createdAtMs: original.createdAtMs,
+        updatedAtMs: 0,
+      );
+      await store.saveRecord(updated, isNew: false);
+      await services.photos.afterCommit(
+          photos: [for (final id in keep) DraftPhoto.existing(id)], previous: original.photoIds);
+      AppLog.info('record.photo_deleted');
+      services.sync.requestSoon();
+      final saved = await store.record(original.id);
+      final catalog = await ref.read(catalogProvider.future);
+      if (saved != null && mounted) {
+        _original = saved;
+        _setDraft(_fromRecord(saved, catalog));
+      }
+    } catch (e, st) {
+      AppLog.error('record.photo_delete_failed', e, st);
+      if (mounted) toast(context, '照片沒有刪掉，請再試一次');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   Widget _buttons() {
