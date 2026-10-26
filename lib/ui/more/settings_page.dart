@@ -124,7 +124,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           subtitle: Text(paused
               ? '已暫停（未登入）'
               : settings.syncRecords
-                  ? '最後同步：${fmt(lastSync)}${syncError != null ? '（上次失敗，稍後自動重試）' : ''}'
+                  ? '最後同步：${fmt(lastSync)}${syncError == 'merge_problem' ? '（資料整合出現問題，請到意見回饋回報）' : syncError != null ? '（上次失敗，稍後自動重試）' : ''}'
                   : '存到你自己的 Google 雲端硬碟中只有本 App 能讀取的區域'),
           value: settings.syncRecords,
           onChanged: cloudLocked

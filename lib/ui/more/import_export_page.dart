@@ -98,114 +98,131 @@ class _ImportExportPageState extends ConsumerState<ImportExportPage> {
     }
   }
 
-  Future<void> _import() async {
-    final services = ref.read(servicesProvider);
-    // 系統檔案選擇器改用一般檔案類型挑選,再由 App 檢查檔頭。
-    final picked = await FilePicker.pickFiles(type: FileType.any);
-    final path = picked.isEmpty ? null : picked.single.path;
-    if (path == null || !mounted) return;
-    final file = File(path);
-    ImportPlan? plan;
-    try {
-      setState(() => _step = '檢查檔案');
-      await services.importer.checkFile(file);
-      if (!mounted) return;
-      if (!await ensureDrive(context, services, '匯入')) return;
-      plan = await services.importer.prepare(file, services.interactiveCloud(), progress: (s) {
+  void _problem(String title, String message) => _problemDialog(context, title, message);
+
+  Future<void> _import() => importFlow(context, ref, (s) {
         if (mounted) setState(() => _step = s);
       });
-      if (!mounted) return;
-      setState(() => _step = null);
+}
 
-      // 第 8 步:先說明,再關閉兩個雲端開關。
-      final go = await confirm(context,
-          title: '要匯入嗎？',
-          message: '檔案裡有 ${plan.parsed.babies.length} 個寶寶、'
-              '${plan.parsed.babies.fold<int>(0, (n, b) => n + b.records.length)} 筆紀錄。\n\n'
-              '匯入前會先關閉「紀錄與雲端同步」與「照片存到雲端」。匯入完成後請自行重新開啟，App 會再處理與雲端資料的差異。',
-          ok: '匯入');
-      if (!go || !mounted) return;
-      await services.store.setSetting(Keys.syncRecords, '0');
-      await services.store.setSetting(Keys.syncPhotos, '0');
+/// 匯入流程(匯入/匯出頁與第一次開啟共用)。step 回報目前的步驟,null 表示沒有在跑。
+Future<void> importFlow(BuildContext context, WidgetRef ref, void Function(String? step) step) async {
+  final services = ref.read(servicesProvider);
+  String? current;
+  void setStep(String? s) {
+    current = s;
+    step(s);
+  }
 
-      // 第 9 步:同名寶寶有資料衝突 → 保留舊資料或匯入(直接取代);取代前要輸入寶寶名稱確認。
-      final replace = <String, bool>{};
-      for (final m in plan.conflicts) {
-        if (!mounted) return;
-        replace[m.file.name] = await _askReplace(m.file.name);
-      }
-      setState(() => _step = '寫入資料');
-      final summary = await services.importer.apply(plan, replace);
-      if (!mounted) return;
-      await showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: const Text('匯入完成'),
-          content: Text('匯入了 ${summary.babies} 個寶寶、${summary.records} 筆紀錄'
-              '${summary.skipped > 0 ? '，保留了 ${summary.skipped} 個寶寶在手機上的資料' : ''}。\n\n'
-              '要同步的話，請到 App 設定重新打開「紀錄與雲端同步」與「照片存到雲端」。'),
-          actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('好'))],
-        ),
-      );
-    } on ImportProblem catch (e) {
-      if (mounted) _problem('沒有匯入', e.message);
-    } catch (e, st) {
-      AppLog.error('import.error', e, st);
-      if (mounted) _problem('沒有匯入', '匯入沒有成功，請再試一次。');
-    } finally {
-      if (plan != null) await services.importer.cleanup(plan);
-      if (mounted) setState(() => _step = null);
+  // 系統檔案選擇器改用一般檔案類型挑選,再由 App 檢查檔頭。
+  final picked = await FilePicker.pickFiles(type: FileType.any);
+  final path = picked.isEmpty ? null : picked.single.path;
+  if (path == null || !context.mounted) return;
+  final file = File(path);
+  ImportPlan? plan;
+  try {
+    setStep('檢查檔案');
+    await services.importer.checkFile(file);
+    if (!context.mounted) return;
+    if (!await ensureDrive(context, services, '匯入')) return;
+    plan = await services.importer.prepare(file, services.interactiveCloud(), progress: setStep);
+    if (!context.mounted) return;
+    setStep(null);
+
+    // 第 8 步:先說明,再關閉兩個雲端開關。
+    final go = await confirm(context,
+        title: '要匯入嗎？',
+        message: '檔案裡有 ${plan.parsed.babies.length} 個寶寶、'
+            '${plan.parsed.babies.fold<int>(0, (n, b) => n + b.records.length)} 筆紀錄。\n\n'
+            '匯入前會先關閉「紀錄與雲端同步」與「照片存到雲端」。匯入完成後請自行重新開啟，App 會再處理與雲端資料的差異。',
+        ok: '匯入');
+    if (!go || !context.mounted) return;
+    await services.store.setSetting(Keys.syncRecords, '0');
+    await services.store.setSetting(Keys.syncPhotos, '0');
+
+    // 第 9 步:同名寶寶有資料衝突 → 保留舊資料或匯入(直接取代);取代前要輸入寶寶名稱確認。
+    final replace = <String, bool>{};
+    for (final m in plan.conflicts) {
+      if (!context.mounted) return;
+      replace[m.file.name] = await _askReplace(context, m.file.name);
     }
-  }
-
-  Future<bool> _askReplace(String name) async {
-    final choice = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text('「$name」的資料不一樣'),
-        content: Text('手機上的「$name」和匯入檔裡的不一樣。要保留手機上的資料，還是用匯入檔直接取代（不做整合）？'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('匯入（取代）')),
-          FilledButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('保留舊資料')),
-        ],
-      ),
-    );
-    if (choice != true || !mounted) return false;
-    final controller = TextEditingController();
-    final typed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => AlertDialog(
-          title: const Text('確定要取代嗎？'),
-          content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('手機上「$name」的紀錄會全部換成匯入檔的，無法復原。請輸入寶寶名稱「$name」確認。'),
-            const SizedBox(height: 8),
-            TextField(controller: controller, autofocus: true, onChanged: (_) => setState(() {})),
-          ]),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('保留舊資料')),
-            FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: ctx.colors.danger, foregroundColor: ctx.colors.bg),
-              onPressed: controller.text.trim() == name ? () => Navigator.pop(ctx, true) : null,
-              child: const Text('取代'),
-            ),
-          ],
-        ),
-      ),
-    );
-    return typed == true;
-  }
-
-  void _problem(String title, String message) {
-    showDialog(
+    setStep('寫入資料');
+    final summary = await services.importer.apply(plan, replace);
+    if (!context.mounted) return;
+    await showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(title),
-        content: Text(message),
+        title: const Text('匯入完成'),
+        content: Text('匯入了 ${summary.babies} 個寶寶、${summary.records} 筆紀錄'
+            '${summary.skipped > 0 ? '，保留了 ${summary.skipped} 個寶寶在手機上的資料' : ''}。\n\n'
+            '要同步的話，請到 App 設定重新打開「紀錄與雲端同步」與「照片存到雲端」。'),
         actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('好'))],
       ),
     );
+  } on ImportProblem catch (e) {
+    if (context.mounted) _problemDialog(context, '沒有匯入', e.message);
+  } catch (e, st) {
+    AppLog.error('import.error', e, st);
+    if (!context.mounted) return;
+    // 寫入資料(和手機上的資料整合)時出錯是預期外的:提供回報。紀錄的寫入在同一個交易裡,失敗時手機上的紀錄不變。
+    if (current == '寫入資料') {
+      await showIntegrationProblem(context, ref);
+    } else {
+      _problemDialog(context, '沒有匯入', '匯入沒有成功，請再試一次。');
+    }
+  } finally {
+    if (plan != null) await services.importer.cleanup(plan);
+    setStep(null);
   }
+}
+
+Future<bool> _askReplace(BuildContext context, String name) async {
+  final choice = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => AlertDialog(
+      title: Text('「$name」的資料不一樣'),
+      content: Text('手機上的「$name」和匯入檔裡的不一樣。要保留手機上的資料，還是用匯入檔直接取代（不做整合）？'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('匯入（取代）')),
+        FilledButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('保留舊資料')),
+      ],
+    ),
+  );
+  if (choice != true || !context.mounted) return false;
+  final controller = TextEditingController();
+  final typed = await showDialog<bool>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setState) => AlertDialog(
+        title: const Text('確定要取代嗎？'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text('手機上「$name」的紀錄會全部換成匯入檔的，無法復原。請輸入寶寶名稱「$name」確認。'),
+          const SizedBox(height: 8),
+          TextField(controller: controller, autofocus: true, onChanged: (_) => setState(() {})),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('保留舊資料')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: ctx.colors.danger, foregroundColor: ctx.colors.bg),
+            onPressed: controller.text.trim() == name ? () => Navigator.pop(ctx, true) : null,
+            child: const Text('取代'),
+          ),
+        ],
+      ),
+    ),
+  );
+  return typed == true;
+}
+
+void _problemDialog(BuildContext context, String title, String message) {
+showDialog(
+  context: context,
+  builder: (ctx) => AlertDialog(
+    title: Text(title),
+    content: Text(message),
+    actions: [FilledButton(onPressed: () => Navigator.pop(ctx), child: const Text('好'))],
+  ),
+);
 }

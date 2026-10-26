@@ -60,6 +60,10 @@ App 連到的地方:
 
 - **每筆紀錄一個檔**(`mff_rec_{UUID}.json`),另外有寶寶清單與版本檔。衝突的範圍縮小到「同一筆紀錄兩邊都改了」。每個檔的屬性帶最後修改時間、是否刪除、屬於哪個寶寶,不用下載內容就能比對。
 - **三種情況**:雲端版本等於上次同步的版本 → 沒人動過,直接上傳,再讀一次確認;雲端版本等於上次「要寫」的版本 → 上次其實已經傳成功;其他 → 有人動過,逐筆比對,沒衝突的自動合併,有衝突的才問使用者(保留較新的 / 手機上的 / 雲端的 / 先停止同步)。
+- **衝突只看內容**:同一筆紀錄兩邊的內容(寶寶、刪除與否、每個欄位)不同才算衝突,最後修改時間不同但內容一樣的不算。例如匯入的紀錄會標成剛修改,內容和雲端一樣就直接當成已同步。多筆衝突的對話框會列出衝突的日期,讓使用者知道要去哪幾天看。
+- **寶寶用名字認**:匯入和同步都一樣,同名的就是同一個寶寶。紀錄在雲端是用寶寶序號掛在寶寶底下的,所以名字對上、序號不同時,手機上的寶寶改用雲端的序號(使用者看不到序號);被占用的序號讓給雲端,手機上原本占著的寶寶換到新序號。之前用「序號 + 建立時間」認寶寶,重裝 App 後先新增同名寶寶、再匯入、再打開同步,會被判定成兩個不同的寶寶,紀錄被歸到改了名的那一個;改成用名字之後這個情境不再發生。
+- **改名就是另一個寶寶**:有開同步時改名,會另外建立新名字的寶寶並複製紀錄與照片(新的紀錄與照片編號),原本的寶寶不動。這樣雲端上不會出現「同一個序號換了名字」,另一支手機不用猜改名前後是不是同一個。沒開同步時直接改名。
+- **預期外的狀況不自動修**:合併後出現同名的寶寶這類不該發生的狀況,不再自動在名字後面加編號,而是停下來、寫進診斷記錄,跳「資料整合出現問題」並提供回報;這種情況重試也一樣,所以不自動重試。
 - **沒成功絕不刪本機**:雲端少了檔案也不刪手機上的紀錄。
 - 失敗重試:5 分鐘一次、半天最多 10 次,只在 App 開著時。每個雲端硬碟的呼叫最多等 60 秒(上傳下載照片與匯出檔 30 分鐘),整輪同步最多 10 分鐘,不會卡住。
 - 以「一支手機為主」設計;第二支手機造成的衝突只求堪用。
@@ -216,7 +220,7 @@ flutter test
 dart run tool/check_version.dart
 ```
 
-- `flutter test` 目前 239 項,其中畫面測試(`test/ui/`)是每個主要畫面 × 三種螢幕 × 兩種字級。
+- `flutter test` 目前 255 項,其中畫面測試(`test/ui/`)是每個主要畫面 × 三種螢幕 × 兩種字級。
 - `tool/check_version.dart` 檢查版本號:App 版本 x.y.z 的 x 只在匯出格式改變時動,Android 版本碼 = x×1000 + y×10 + z。
 
 截圖比對(`test/ui/golden/`)的文字畫成方塊,在不同電腦上畫出來才會一樣。**故意改了版面時**,重新產生截圖、看過再提交:
@@ -334,6 +338,10 @@ Sync uses the app-only area of the user's own Google Drive (the `drive.appdata` 
 
 - **One file per record** (`mff_rec_{UUID}.json`), plus a baby list and a version file. Conflicts shrink to "both sides changed the same record". Each file's properties carry the last-modified time, the deleted flag and which baby it belongs to, so files can be compared without downloading their content.
 - **Three cases**: the cloud version equals the version from the last sync → nobody touched it, so upload and read back to confirm; the cloud version equals the version we last *tried* to write → the last upload actually succeeded; otherwise → someone changed things, so compare record by record, merge whatever doesn't conflict automatically, and only ask the user about conflicts (keep the newer one / the phone's / the cloud's / stop syncing for now).
+- **Conflicts are about content**: a record only conflicts when its content differs on the two sides (baby, deleted flag, every field); a different last-modified time with identical content is not a conflict. For example, imported records are marked as just modified, and when their content matches the cloud they are simply treated as synced. The multi-conflict dialog lists the dates involved so the user knows which days to look at.
+- **Babies are identified by name**: import and sync work the same way, and babies with the same name are the same baby. Records in the cloud hang off a baby by its sequence number, so when the names match but the numbers differ, the baby on the phone takes the cloud's number (users never see these numbers); if that number is taken, the baby holding it on the phone moves to a new number. Babies used to be identified by number plus creation time, so reinstalling the app, adding a baby with the same name, importing, and then turning on sync was treated as two different babies, and the records ended up under the renamed one; matching by name makes that scenario go away.
+- **Renaming makes a different baby**: renaming while sync is on creates a new baby with the new name and copies the records and photos (with new record and photo IDs), leaving the original baby untouched. That way the cloud never sees "the same number with a new name", and another phone never has to guess whether the names before and after belong to the same baby. Without sync, renaming just renames.
+- **Unexpected states are not fixed automatically**: something that should never happen, such as two babies with the same name after merging, no longer gets a number appended to its name. Sync stops, writes the diagnostics log and shows "a problem occurred while merging data" with a way to report it; retrying would hit the same state, so it does not retry automatically.
 - **Never delete local data without success**: files missing in the cloud never delete records on the phone.
 - Retry on failure: every 5 minutes, at most 10 times per half day, only while the app is open. Each Google Drive call waits at most 60 seconds (30 minutes for photo and export transfers), and a whole sync round at most 10 minutes, so nothing hangs forever.
 - Designed around one main phone; conflicts caused by a second phone only need to be good enough.
@@ -490,7 +498,7 @@ flutter test
 dart run tool/check_version.dart
 ```
 
-- `flutter test` currently runs 239 tests; the screen tests (`test/ui/`) cover every main screen × three screen sizes × two text sizes.
+- `flutter test` currently runs 255 tests; the screen tests (`test/ui/`) cover every main screen × three screen sizes × two text sizes.
 - `tool/check_version.dart` checks the version number: the x in app version x.y.z only changes when the export format changes, and the Android version code = x×1000 + y×10 + z.
 
 The screenshot comparison (`test/ui/golden/`) draws text as boxes so that different machines render identically. **When you change a layout on purpose**, regenerate the screenshots and review them before committing:

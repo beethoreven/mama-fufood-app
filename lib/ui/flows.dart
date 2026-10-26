@@ -3,14 +3,19 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/log.dart';
 import '../core/text.dart';
+import '../core/time.dart';
 import '../data/store.dart';
 import '../domain/catalog.dart';
 import '../domain/record.dart';
 import '../services/auth_service.dart';
 import '../services/drive_store.dart';
+import '../services/feedback_service.dart';
 import '../services/services.dart';
 import '../services/sync_engine.dart';
 import '../state/providers.dart';
+import 'more/babies_page.dart';
+import 'more/feedback_page.dart';
+import 'shell.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
 
@@ -116,6 +121,52 @@ Future<void> setPhotoSync(BuildContext context, Services services, bool on) asyn
   await store.setSetting(SyncKeys.account, services.auth.user!.sub);
   AppLog.info('photos.cloud_enabled');
   services.photos.processCloud();
+}
+
+/// 改名(SPEC 第 15 節)。沒開雲端同步:直接改。有開同步:改名就是另一個寶寶,
+/// 另外建立新名字的寶寶、複製目前的紀錄與照片,原本的寶寶保留。
+Future<void> renameBabyFlow(BuildContext context, WidgetRef ref, Baby baby) async {
+  final services = ref.read(servicesProvider);
+  final store = services.store;
+  final name = await askBabyName(context, title: '改名', initial: baby.name);
+  if (name == null || name == baby.name || !context.mounted) return;
+  final syncOn = await store.getSetting(Keys.syncRecords) == '1';
+  try {
+    if (!syncOn) {
+      await store.renameBaby(baby.seq, name);
+      return;
+    }
+    if (!context.mounted) return;
+    final go = await confirm(context,
+        title: '改名會變成另一個寶寶',
+        message: '有開「紀錄與雲端同步」時，改名就是另一個寶寶：會另外建立「$name」，'
+            '並把「${baby.name}」目前的紀錄與照片複製一份過去。\n\n'
+            '原本的「${baby.name}」和它的紀錄會保留，不需要的話可以之後刪除。',
+        ok: '建立「$name」');
+    if (!go || !context.mounted) return;
+    // 先確定每張照片都讀得到(可能只在雲端),讀不到就整個不做。
+    final rows = await store.watchAll(baby.seq).first;
+    final bytes = <String, List<int>>{};
+    for (final id in [for (final r in rows) ...r.photoIds]) {
+      final b = await services.photos.bytesOf(id);
+      if (b == null) {
+        if (context.mounted) toast(context, '有照片暫時讀不到（可能沒有網路），沒有改名');
+        return;
+      }
+      bytes[id] = b;
+    }
+    final (copy, photos) = await store.copyBaby(baby.seq, name);
+    for (final (oldId, newPhotoId, recordId) in photos) {
+      await services.photos.importPhoto(newPhotoId, recordId, bytes[oldId]!);
+    }
+    await store.setSetting(Keys.currentBaby, '${copy.seq}');
+    AppLog.info('baby.copied_on_rename', {'records': rows.length, 'photos': photos.length});
+    if (context.mounted) toast(context, '已建立「$name」，複製了 ${rows.length} 筆紀錄；原本的「${baby.name}」保留著');
+  } on InputProblem catch (e) {
+    if (context.mounted) toast(context, e.message);
+  } finally {
+    services.sync.requestSoon();
+  }
 }
 
 /// 刪除寶寶(SPEC 第 5 節):①警告通知按確定 → ②輸入「刪除{寶寶名}的紀錄」按確定 →
@@ -247,6 +298,11 @@ Future<ConflictChoice> resolveConflicts(BuildContext context, Catalog? catalog, 
       builder: (ctx) => SimpleDialog(
         title: Text('你有 ${conflicts.length} 筆資料與雲端衝突，無法同步'),
         children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Text('衝突的日期：${conflictDaysText(conflicts)}\n可以先選「關閉雲端同步記錄」自己修改；'
+                '最快的做法是「以雲端覆蓋本機」。'),
+          ),
           SimpleDialogOption(onPressed: () => Navigator.pop(ctx, ConflictChoice.keepNewer), child: const Text('每筆保留較新的（建議）')),
           SimpleDialogOption(onPressed: () => Navigator.pop(ctx, ConflictChoice.localWins), child: const Text('以本機覆蓋雲端')),
           SimpleDialogOption(onPressed: () => Navigator.pop(ctx, ConflictChoice.cloudWins), child: const Text('以雲端覆蓋本機')),
@@ -268,13 +324,53 @@ Future<ConflictChoice> resolveConflicts(BuildContext context, Catalog? catalog, 
   }
 }
 
-/// 不跳畫面的同步(背景)遇到衝突時,用最上層的畫面問使用者。
+/// 衝突的日期(SPEC 第 15 節):手機上與雲端那份的日期都算,從舊到新,最多列 10 個。
+String conflictDaysText(List<SyncConflict> conflicts, {int max = 10}) {
+  final days = <Day>{
+    for (final c in conflicts) ...[c.local.day, if (c.remote != null) c.remote!.day],
+  }.toList()
+    ..sort();
+  final shown = days.take(max).map((d) => '${d.year}/${d.month}/${d.day}').join('、');
+  return days.length > max ? '$shown 等共 ${days.length} 天' : shown;
+}
+
+/// 不跳畫面的同步(背景)遇到衝突或預期外的狀況時,用最上層的畫面問使用者。
 void installConflictResolver(Services services, GlobalKey<NavigatorState> navigator, WidgetRef ref) {
   services.sync.resolver = (conflicts) async {
     final context = navigator.currentContext;
     if (context == null) return ConflictChoice.keepNewer;
     return resolveConflicts(context, ref.read(catalogProvider).value, conflicts);
   };
+  var shown = false;
+  services.sync.onMergeProblem = (_) async {
+    // 每次開 App 只說一次;之後的同步遇到同樣的狀況,設定頁會顯示。
+    if (shown) return;
+    final context = navigator.currentContext;
+    if (context == null || !context.mounted) return;
+    shown = true;
+    await showIntegrationProblem(context, ref);
+  };
+}
+
+/// 資料整合(同步或匯入)遇到預期外的狀況:說明手機上的資料沒動,並在同一個視窗提供回報。
+/// 相關資訊已經寫進診斷記錄,回報時會一起送出。
+Future<void> showIntegrationProblem(BuildContext context, WidgetRef ref) async {
+  final report = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('資料整合出現問題'),
+      content: const Text('合併資料時遇到預期外的狀況，這次沒有完成，手機上的資料沒有變動。\n\n'
+          '相關資訊已經記下來了，回報給我們可以幫助我們修正。'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('關閉')),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('回報錯誤')),
+      ],
+    ),
+  );
+  if (report != true) return;
+  final shell = ref.read(shellProvider.notifier);
+  while (shell.pop()) {}
+  shell.push(SubPage('意見回饋', (_) => const FeedbackPage(kind: FeedbackKind.problem)));
 }
 
 /// 需要雲端硬碟權限的操作前用:先確定登入、再要權限。

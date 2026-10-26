@@ -29,16 +29,7 @@ class BabiesPage extends ConsumerWidget {
                 IconButton(
                   tooltip: '改名',
                   icon: const Icon(Icons.edit_rounded),
-                  onPressed: () async {
-                    final name = await askBabyName(context, title: '改名', initial: b.name);
-                    if (name == null) return;
-                    try {
-                      await store.renameBaby(b.seq, name);
-                      ref.read(servicesProvider).sync.requestSoon();
-                    } on InputProblem catch (e) {
-                      if (context.mounted) toast(context, e.message);
-                    }
-                  },
+                  onPressed: () => renameBabyFlow(context, ref, b),
                 ),
                 IconButton(
                   tooltip: '刪除',
@@ -68,7 +59,7 @@ class BabiesPage extends ConsumerWidget {
         label: Text(babies.length >= Limits.maxBabies ? '最多 ${Limits.maxBabies} 個寶寶' : '新增寶寶'),
       ),
       const SizedBox(height: 8),
-      Text('改了寶寶的名稱，就會被當成不同的寶寶（匯入時用名稱比對）。', style: Theme.of(context).textTheme.labelSmall),
+      Text('寶寶是用名稱認的（匯入與雲端同步都是）：改了名稱，就會被當成不同的寶寶。有開雲端同步時改名，會另外建立新名稱的寶寶並複製紀錄，原本的保留。', style: Theme.of(context).textTheme.labelSmall),
       const DisclaimerText(Disclaimers.general),
     ]);
   }

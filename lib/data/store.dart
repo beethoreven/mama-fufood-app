@@ -152,6 +152,35 @@ class Store {
         .write(BabiesCompanion(name: Value(name), updatedAt: Value(_now()), dirty: const Value(true)));
   }
 
+  /// 有開雲端同步時改名(SPEC 第 15 節):改名就是另一個寶寶。建立新名字的寶寶,把紀錄複製一份
+  /// (新的紀錄編號、新的照片編號,視為剛新增),原本的寶寶與紀錄都不動。
+  /// 回傳新寶寶,以及每張照片的(舊照片編號, 新照片編號, 新紀錄編號),照片檔由呼叫端複製。
+  /// 同步來的資料可能一天超過 10 筆,複製時不檢查每日上限(比照同步與匯入)。
+  Future<(Baby, List<(String, String, String)>)> copyBaby(int fromSeq, String rawName) => db.transaction(() async {
+        final baby = await addBaby(rawName);
+        final rows = await _live(fromSeq).get();
+        final now = _now();
+        final photos = <(String, String, String)>[];
+        for (final r in rows) {
+          final id = newId();
+          final newPhotos = <String>[];
+          for (final ph in r.photoIds.isEmpty ? const <String>[] : r.photoIds.split(',')) {
+            final np = newId();
+            newPhotos.add(np);
+            photos.add((ph, np, id));
+          }
+          await db.into(db.records).insert(r.copyWith(
+              id: id,
+              babySeq: baby.seq,
+              photoIds: newPhotos.join(','),
+              createdAt: now,
+              updatedAt: now,
+              dirty: true,
+              cloudUpdatedAt: const Value(null)));
+        }
+        return (baby, photos);
+      });
+
   /// 刪除寶寶:紀錄與照片一併刪除(呼叫端負責先刪雲端的資料與照片檔)。寶寶留一筆刪除標記,
   /// 有開同步時讓其他手機也知道。
   Future<List<String>> deleteBabyLocal(int seq) => db.transaction(() async {

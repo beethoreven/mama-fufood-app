@@ -8,9 +8,9 @@ import '../core/log.dart';
 import '../data/store.dart';
 import '../services/daily_check.dart';
 import '../state/providers.dart';
+import 'first_run/first_baby_page.dart';
 import 'first_run/principles_page.dart';
 import 'flows.dart';
-import 'more/babies_page.dart';
 import 'more/feedback_page.dart';
 import 'shell.dart';
 import 'theme.dart';
@@ -29,7 +29,7 @@ class AppGate extends ConsumerStatefulWidget {
 
 class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
   String? _policyVersion;
-  bool _askingBaby = false;
+  bool _firstRunBusy = false;
   bool _startedForeground = false;
   bool _noticeShown = false;
 
@@ -97,30 +97,6 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _askFirstBaby() async {
-    if (_askingBaby) return;
-    _askingBaby = true;
-    final store = ref.read(storeProvider);
-    while (mounted && (await store.babies()).isEmpty) {
-      if (!mounted) break;
-      final ctx = widget.navigatorKey.currentContext ?? context;
-      if (!ctx.mounted) break;
-      final name = await askBabyName(ctx,
-          title: '第一個寶寶',
-          dismissible: false,
-          help: '請輸入你要記錄的第一個寶寶名稱，本名或乳名等等都可以，這個名字只有你自己會看到喔。');
-      if (name == null) continue;
-      try {
-        final baby = await store.addBaby(name);
-        await store.setSetting(Keys.currentBaby, '${baby.seq}');
-        AppLog.info('baby.first_added');
-      } on InputProblem catch (e) {
-        if (ctx.mounted) toast(ctx, e.message);
-      }
-    }
-    _askingBaby = false;
-  }
-
   @override
   Widget build(BuildContext context) {
     final settingsAsync = ref.watch(settingsProvider);
@@ -141,10 +117,14 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
         onAccepted: () => ref.read(storeProvider).setSetting(Keys.policyAck, _policyVersion),
       );
     }
-    // 2. 沒有任何寶寶:跳出關不掉的輸入介面。
-    if (babies.isEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _askFirstBaby());
-      return Scaffold(backgroundColor: c.bg, body: const SizedBox.expand());
+    // 2. 沒有任何寶寶:新增寶寶、從匯出檔匯入、從雲端取回,三選一(匯入或取回進行中也留在這一頁)。
+    if (babies.isEmpty || _firstRunBusy) {
+      return FirstBabyPage(
+        navigatorKey: widget.navigatorKey,
+        onBusy: (busy) {
+          if (mounted) setState(() => _firstRunBusy = busy);
+        },
+      );
     }
     // 3. 強制更新(只對有網路且有做版本檢查的手機生效)。
     final min = settings.raw[CheckKeys.forceMin];

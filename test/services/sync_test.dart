@@ -1,4 +1,6 @@
-import 'package:drift/drift.dart' show driftRuntimeOptions;
+import 'dart:convert';
+
+import 'package:drift/drift.dart' show Value, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mama_fufood/core/text.dart';
@@ -66,6 +68,17 @@ class Phone {
   }
 
   Future<List<FeedRecord>> all(int seq) => store.watchAll(seq).first;
+
+  /// 模擬匯入:同樣的紀錄(編號、內容、建立時間都一樣),標成剛修改、還沒同步。
+  Future<void> importFrom(Phone other, int fromSeq, int toSeq) async {
+    final rows = await (other.store.db.select(other.store.db.records)..where((r) => r.babySeq.equals(fromSeq))).get();
+    for (final r in rows) {
+      await store.db.into(store.db.records).insert(r.copyWith(
+          babySeq: toSeq, updatedAt: TimeRules.now().millisecondsSinceEpoch, dirty: true, cloudUpdatedAt: const Value(null)));
+    }
+  }
+
+  Future<List<String>> babyList() async => [for (final b in await store.babies()) '${b.seq}:${b.name}'];
 
   Future<int> dirty() async => (await (store.db.select(store.db.records)..where((r) => r.dirty.equals(true))).get()).length;
 }
@@ -252,5 +265,114 @@ void main() {
     expect(b.asked, 2);
     expect(await b.store.getSetting(Keys.syncRecords), '0');
     expect({for (final r in await b.all(baby.seq)) r.note}, {'b1', 'b2'});
+  });
+
+  test('重裝後先新增同名寶寶、匯入、再打開同步：認成同一個寶寶，不出現「(2)」，也不算衝突', () async {
+    final cloud = FakeCloud();
+    final a = Phone(cloud);
+    await a.enable();
+    final baby = await a.store.addBaby('小明');
+    await a.add(baby.seq, note: '第一口');
+    await a.add(baby.seq, food: 2, day: const Day(2026, 10, 24));
+    await a.sync.syncNow(reason: 'test');
+
+    clock = clock.add(const Duration(days: 1));
+    final b = Phone(cloud);
+    final mine = await b.store.addBaby('小明');
+    await b.importFrom(a, baby.seq, mine.seq);
+    await b.enable();
+    await b.sync.syncNow(reason: 'test');
+    expect(b.sync.state, SyncState.ok);
+    expect(await b.babyList(), ['1:小明']);
+    expect((await b.all(1)).map((r) => r.note), containsAll(['第一口']));
+    expect((await b.all(1)).length, 2);
+    expect(b.asked, 0, reason: '內容一樣，只是修改時間不同，不算衝突');
+    expect(await b.dirty(), 0);
+  });
+
+  test('名字對上、序號不同：手機上的改用雲端的序號；占著那個序號的寶寶換到新序號', () async {
+    final cloud = FakeCloud();
+    final a = Phone(cloud);
+    await a.enable();
+    final baby = await a.store.addBaby('小明');
+    await a.add(baby.seq, note: '小明的');
+    await a.sync.syncNow(reason: 'test');
+
+    final b = Phone(cloud);
+    final big = await b.store.addBaby('大寶');
+    await b.add(big.seq, note: '大寶的');
+    final ming = await b.store.addBaby('小明');
+    await b.importFrom(a, baby.seq, ming.seq);
+    await b.enable();
+    await b.sync.syncNow(reason: 'test');
+    expect(await b.babyList(), ['1:小明', '3:大寶']);
+    expect((await b.all(1)).single.note, '小明的');
+    expect((await b.all(3)).single.note, '大寶的');
+    expect(b.asked, 0);
+
+    await a.sync.syncNow(reason: 'test');
+    expect(await a.babyList(), ['1:小明', '3:大寶']);
+    expect((await a.all(3)).single.note, '大寶的');
+  });
+
+  test('同一筆紀錄內容真的不同才是衝突', () async {
+    final cloud = FakeCloud();
+    final a = Phone(cloud);
+    await a.enable();
+    final baby = await a.store.addBaby('小明');
+    final r = await a.add(baby.seq, note: '雲端的');
+    await a.sync.syncNow(reason: 'test');
+
+    final b = Phone(cloud);
+    final mine = await b.store.addBaby('小明');
+    await b.importFrom(a, baby.seq, mine.seq);
+    await b.edit(r.id, '手機上改過');
+    await b.enable();
+    await b.sync.syncNow(reason: 'test');
+    expect(b.asked, 1);
+  });
+
+  test('預期外的狀況（雲端有兩個同名的寶寶）：不自動改名，交給畫面說明、不重試', () async {
+    final cloud = FakeCloud();
+    final a = Phone(cloud), b = Phone(cloud);
+    await a.enable();
+    await a.store.addBaby('小明');
+    await a.sync.syncNow(reason: 'test');
+    // 舊版 App 留下的狀況:手動把雲端清單改成兩個同名的寶寶。
+    final file = cloud.files.values.firstWhere((f) => f.name == CloudNames.babies);
+    final now = TimeRules.now().millisecondsSinceEpoch;
+    file.bytes = utf8.encode('{"babies":[{"seq":1,"name":"小明","created_at":1,"updated_at":$now,"deleted":false},'
+            '{"seq":2,"name":"小明","created_at":2,"updated_at":$now,"deleted":false}]}');
+    MergeProblem? reported;
+    b.sync.onMergeProblem = (p) async => reported = p;
+    await b.enable();
+    await b.sync.syncNow(reason: 'test');
+    expect(b.sync.state, SyncState.failed);
+    expect(reported?.code, 'cloud_duplicate_names');
+    expect(await b.babyList(), isEmpty);
+  });
+
+  test('有開同步時改名：另外建立新名字的寶寶並複製紀錄，原本的寶寶與紀錄都不動，另一支手機兩個都有', () async {
+    final cloud = FakeCloud();
+    final a = Phone(cloud), b = Phone(cloud);
+    await a.enable();
+    final ming = await a.store.addBaby('小明');
+    final r = await a.add(ming.seq, note: '原本的');
+    await a.sync.syncNow(reason: 'test');
+    await b.enable();
+    await b.sync.syncNow(reason: 'test');
+
+    final (copy, photos) = await a.store.copyBaby(ming.seq, '明明');
+    expect(photos, isEmpty);
+    await a.sync.syncNow(reason: 'test');
+    await b.sync.syncNow(reason: 'test');
+    for (final p in [a, b]) {
+      expect(await p.babyList(), ['1:小明', '2:明明']);
+      expect((await p.all(1)).single.id, r.id);
+      final copied = (await p.all(copy.seq)).single;
+      expect(copied.note, '原本的');
+      expect(copied.id, isNot(r.id));
+    }
+    expect(a.asked + b.asked, 0);
   });
 }

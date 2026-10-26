@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:characters/characters.dart';
 import 'package:drift/drift.dart';
 import 'package:flutter/foundation.dart';
 
@@ -81,6 +80,9 @@ class SyncEngine extends ChangeNotifier {
   final Future<bool> Function() enabled;
   ConflictResolver? resolver;
 
+  /// 合併時遇到預期外的狀況(例如同名的寶寶):畫面跳「資料整合出現問題」並提供回報。
+  Future<void> Function(MergeProblem problem)? onMergeProblem;
+
   SyncState state = SyncState.idle;
 
   /// 測試用:直接設定狀態並通知畫面(真的同步要連雲端硬碟)。
@@ -155,6 +157,13 @@ class SyncEngine extends ChangeNotifier {
       await store.setSetting(SyncKeys.lastOk, '${_now()}');
       await store.setSetting(SyncKeys.lastError, null);
       AppLog.info('sync.ok');
+    } on MergeProblem catch (e, st) {
+      // 預期外的資料狀況:不重試(重試也一樣),交給畫面說明並讓使用者回報。
+      state = SyncState.failed;
+      await store.setSetting(SyncKeys.lastError, 'merge_problem');
+      AppLog.error('sync.merge_problem', e, st);
+      final report = onMergeProblem;
+      if (report != null) await report(e);
     } on SyncStopped {
       // 使用者在衝突對話框選了「關閉雲端同步記錄」:不是錯誤,也不重試。
       state = SyncState.off;
@@ -331,6 +340,21 @@ class SyncEngine extends ChangeNotifier {
         ));
   }
 
+  /// 兩邊內容一樣:當成已經同步,修改時間用雲端的。
+  Future<void> _markSame(String id, int remoteUpdatedAt) =>
+      (_db.update(_db.records)..where((x) => x.id.equals(id))).write(
+          RecordsCompanion(dirty: const Value(false), updatedAt: Value(remoteUpdatedAt), cloudUpdatedAt: Value(remoteUpdatedAt)));
+
+  /// 衝突只看內容(SPEC 第 15 節):寶寶、刪除與否、紀錄的每個欄位;不看最後修改時間。
+  static bool _sameContent(RecordRow local, FeedRecord? remote) {
+    if (local.deleted || remote == null) return local.deleted && remote == null;
+    String key(FeedRecord r) => jsonEncode({
+          ...ExportFormat.encodeRecord(r, photosAsPaths: false)..remove('updated_at'),
+          'baby_seq': r.babySeq,
+        });
+    return key(recordFromRow(local)) == key(remote);
+  }
+
   Future<void> _markLanded(Map<String, _RemoteRecord> remote) async {
     final dirty = await (_db.select(_db.records)..where((r) => r.dirty.equals(true))).get();
     for (final row in dirty) {
@@ -345,7 +369,7 @@ class SyncEngine extends ChangeNotifier {
   /// 逐筆比對。無衝突的自動合併;衝突交給使用者選(SPEC 第 4 節)。
   Future<void> _merge(CloudStore c, Map<String, _RemoteRecord> remote, {required bool first}) async {
     final locals = {for (final r in await _db.select(_db.records).get()) r.id: r};
-    final conflicts = <(RecordRow, _RemoteRecord)>[];
+    final conflicts = <(RecordRow, _RemoteRecord, FeedRecord?)>[];
     var pulled = 0;
     for (final entry in remote.entries) {
       final r = entry.value;
@@ -357,20 +381,21 @@ class SyncEngine extends ChangeNotifier {
         continue;
       }
       final known = first ? null : local.cloudUpdatedAt;
-      if (known == null) {
-        if (local.updatedAt == r.updatedAt && local.deleted == r.deleted) {
-          await (_db.update(_db.records)..where((x) => x.id.equals(local.id)))
-              .write(RecordsCompanion(dirty: const Value(false), cloudUpdatedAt: Value(r.updatedAt)));
-        } else {
-          conflicts.add((local, r));
-        }
-      } else if (known == r.updatedAt) {
+      if (known == r.updatedAt) {
         // 雲端沒變;本機有改的話等一下上傳。
-      } else if (!local.dirty) {
+      } else if (known != null && !local.dirty) {
         await _writeRemote(await _download(c, r), entry.key, r.updatedAt);
         pulled++;
+      } else if (local.updatedAt == r.updatedAt && local.deleted == r.deleted) {
+        await _markSame(local.id, r.updatedAt);
       } else {
-        conflicts.add((local, r));
+        // 兩邊都可能改過:比內容,不比修改時間(例如匯入的紀錄標成剛修改,但內容和雲端一樣)。
+        final remoteRecord = await _download(c, r);
+        if (_sameContent(local, remoteRecord)) {
+          await _markSame(local.id, r.updatedAt);
+        } else {
+          conflicts.add((local, r, remoteRecord));
+        }
       }
     }
     // 雲端沒有、手機上有的:上傳(雲端檔案不見了也不刪手機上的,重新傳上去)。
@@ -383,8 +408,8 @@ class SyncEngine extends ChangeNotifier {
     if (conflicts.isEmpty) return;
 
     final list = <SyncConflict>[];
-    for (final (local, r) in conflicts) {
-      list.add(SyncConflict(local: recordFromRow(local), remote: await _download(c, r), remoteUpdatedAt: r.updatedAt));
+    for (final (local, r, remoteRecord) in conflicts) {
+      list.add(SyncConflict(local: recordFromRow(local), remote: remoteRecord, remoteUpdatedAt: r.updatedAt));
     }
     AppLog.info('sync.conflicts', {'n': list.length});
     final ask = resolver;
@@ -396,7 +421,7 @@ class SyncEngine extends ChangeNotifier {
     }
     for (var i = 0; i < list.length; i++) {
       final conflict = list[i];
-      final (local, r) = conflicts[i];
+      final (local, r, _) = conflicts[i];
       final takeRemote = switch (choice) {
         ConflictChoice.cloudWins => true,
         ConflictChoice.localWins => false,
@@ -412,12 +437,17 @@ class SyncEngine extends ChangeNotifier {
     }
   }
 
-  /// 寶寶清單的合併。寶寶以序號加建立時間辨識;兩支手機離線時各自新增而撞號,
-  /// 後到的(這支手機上、雲端還沒有的)自動改用下一個沒用過的序號。
+  /// 寶寶清單的合併(SPEC 第 15 節)。寶寶用**名字**認:手機上和雲端同名的就是同一個寶寶,
+  /// 手機上的改用雲端的序號(紀錄在雲端是用序號掛在寶寶底下的)。雲端的序號在手機上被另一個
+  /// 不同名的寶寶占著,就把那個寶寶換到下一個沒用過的序號。合併後如果還有同名的寶寶,
+  /// 是預期外的狀況:丟 [MergeProblem],不自動改名。
   Future<bool> _mergeBabies(CloudStore c, CloudFile? file) async {
     if (file == null) return false;
     final json = (jsonDecode(utf8.decode(await c.readAppData(file.id))) as Map).cast<String, Object?>();
     final remote = [for (final b in (json['babies'] as List? ?? const [])) (b as Map).cast<String, Object?>()];
+    final liveNames = [for (final rb in remote) if (rb['deleted'] != true) rb['name'] as String];
+    if (liveNames.toSet().length != liveNames.length) throw const MergeProblem('cloud_duplicate_names');
+    final remoteMax = remote.fold<int>(0, (m, rb) => (rb['seq'] as int) > m ? rb['seq'] as int : m);
     var changed = false;
     for (final rb in remote) {
       final seq = rb['seq'] as int;
@@ -425,28 +455,55 @@ class SyncEngine extends ChangeNotifier {
       final updatedAt = rb['updated_at'] as int;
       final deleted = rb['deleted'] == true;
       final name = rb['name'] as String;
-      final local = await (_db.select(_db.babies)..where((b) => b.seq.equals(seq))).getSingleOrNull();
+      var local = await _babyAt(seq);
+      final byName = deleted
+          ? null
+          : await (_db.select(_db.babies)..where((b) => b.name.equals(name) & b.deleted.equals(false))).getSingleOrNull();
+
+      if (byName != null && byName.seq != seq) {
+        // 同一個寶寶、序號不同:先讓出雲端的序號,再把手機上的這個搬過去。
+        if (local != null) {
+          if (local.deleted) {
+            await (_db.delete(_db.babies)..where((b) => b.seq.equals(seq))).go();
+          } else {
+            await _moveBaby(local, await _freeSeq(remoteMax));
+          }
+        }
+        await _moveBaby(byName, seq, recordsDirty: false);
+        await (_db.update(_db.babies)..where((b) => b.seq.equals(seq))).write(BabiesCompanion(
+            createdAt: Value(createdAt), updatedAt: Value(updatedAt), dirty: const Value(false), cloudUpdatedAt: Value(updatedAt)));
+        await _bumpSeqMax(seq);
+        AppLog.info('sync.baby_matched_by_name');
+        changed = true;
+        continue;
+      }
+
+      if (byName != null && byName.cloudUpdatedAt == null) {
+        // 同一個寶寶、序號也相同,但手機上的是新建的(例如重裝後新增再匯入):直接認雲端那個。
+        await (_db.update(_db.babies)..where((b) => b.seq.equals(seq))).write(BabiesCompanion(
+            createdAt: Value(createdAt), updatedAt: Value(updatedAt), dirty: const Value(false), cloudUpdatedAt: Value(updatedAt)));
+        AppLog.info('sync.baby_matched_by_name');
+        continue;
+      }
+
+      // 雲端這個序號在手機上是另一個寶寶(名字不同,或手機上這個從沒同步過、雲端那個已經刪掉):
+      // 手機上的換到新序號,雲端的放進來。
+      if (local != null && !local.deleted && byName == null && (local.name != name || local.cloudUpdatedAt == null)) {
+        await _moveBaby(local, await _freeSeq(remoteMax));
+        AppLog.info('sync.baby_renumbered');
+        local = null;
+        changed = true;
+      } else if (local != null && local.deleted && local.name != name) {
+        // 手機上這個序號是另一個寶寶的刪除標記,雲端沒有它:用雲端的取代。
+        await (_db.delete(_db.babies)..where((b) => b.seq.equals(seq))).go();
+        local = null;
+      }
+
       if (local == null) {
         await _db.into(_db.babies).insert(BabiesCompanion.insert(
             seq: Value(seq), name: name, createdAt: createdAt, updatedAt: updatedAt, deleted: Value(deleted),
             cloudUpdatedAt: Value(updatedAt)));
         await _bumpSeqMax(seq);
-        continue;
-      }
-      if (local.createdAt != createdAt) {
-        // 撞號:手機上的這個改用新序號,紀錄跟著改,再放進雲端那個。
-        final newSeq = await _freeSeq();
-        await _db.transaction(() async {
-          await _db.into(_db.babies).insert(local.copyWith(seq: newSeq, dirty: true, cloudUpdatedAt: const Value(null)));
-          await (_db.update(_db.records)..where((r) => r.babySeq.equals(seq)))
-              .write(RecordsCompanion(babySeq: Value(newSeq), dirty: const Value(true), updatedAt: Value(_now())));
-          await (_db.delete(_db.babies)..where((b) => b.seq.equals(seq) & b.createdAt.equals(local.createdAt))).go();
-          await _db.into(_db.babies).insert(BabiesCompanion.insert(
-              seq: Value(seq), name: name, createdAt: createdAt, updatedAt: updatedAt, deleted: Value(deleted),
-              cloudUpdatedAt: Value(updatedAt)));
-        });
-        await _bumpSeqMax(newSeq);
-        AppLog.info('sync.baby_renumbered');
         changed = true;
         continue;
       }
@@ -466,43 +523,36 @@ class SyncEngine extends ChangeNotifier {
           name: Value(name), deleted: Value(deleted), updatedAt: Value(updatedAt), dirty: const Value(false),
           cloudUpdatedAt: Value(updatedAt)));
     }
-    await _fixDuplicateNames();
+    final live = await (_db.select(_db.babies)..where((b) => b.deleted.equals(false))).get();
+    if (live.map((b) => b.name).toSet().length != live.length) throw const MergeProblem('duplicate_names');
     return changed;
   }
 
-  Future<int> _freeSeq() async {
+  Future<BabyRow?> _babyAt(int seq) => (_db.select(_db.babies)..where((b) => b.seq.equals(seq))).getSingleOrNull();
+
+  /// 把手機上的寶寶換到另一個序號,紀錄跟著搬。recordsDirty:搬過去的紀錄要不要重新上傳
+  /// (手機上自己的寶寶換號時要;對齊雲端序號時不用,雲端那份本來就掛在這個序號底下)。
+  Future<void> _moveBaby(BabyRow row, int newSeq, {bool recordsDirty = true}) async {
+    await _db.transaction(() async {
+      await (_db.delete(_db.babies)..where((b) => b.seq.equals(row.seq))).go();
+      await _db.into(_db.babies).insert(row.copyWith(seq: newSeq, dirty: true, cloudUpdatedAt: const Value(null)));
+      await (_db.update(_db.records)..where((r) => r.babySeq.equals(row.seq)))
+          .write(RecordsCompanion(babySeq: Value(newSeq), dirty: recordsDirty ? const Value(true) : const Value.absent()));
+      if (await store.getSetting(Keys.currentBaby) == '${row.seq}') await store.setSetting(Keys.currentBaby, '$newSeq');
+    });
+    await _bumpSeqMax(newSeq);
+  }
+
+  Future<int> _freeSeq([int atLeast = 0]) async {
     final rows = await _db.select(_db.babies).get();
     final maxInTable = rows.fold<int>(0, (m, b) => b.seq > m ? b.seq : m);
     final remembered = int.tryParse(await store.getSetting(Keys.babySeqMax) ?? '') ?? 0;
-    return (maxInTable > remembered ? maxInTable : remembered) + 1;
+    return [maxInTable, remembered, atLeast].reduce((a, b) => a > b ? a : b) + 1;
   }
 
   Future<void> _bumpSeqMax(int seq) async {
     final remembered = int.tryParse(await store.getSetting(Keys.babySeqMax) ?? '') ?? 0;
     if (seq > remembered) await store.setSetting(Keys.babySeqMax, '$seq');
-  }
-
-  /// 合併後如果有同名的寶寶(名稱不可重複),後面的那個加上編號。
-  Future<void> _fixDuplicateNames() async {
-    final live = await (_db.select(_db.babies)
-          ..where((b) => b.deleted.equals(false))
-          ..orderBy([(b) => OrderingTerm.asc(b.seq)]))
-        .get();
-    final seen = <String>{};
-    for (final b in live) {
-      if (seen.add(b.name)) continue;
-      var n = 2;
-      String candidate;
-      do {
-        final suffix = '($n)';
-        final room = Limits.babyNameMaxChars - suffix.length;
-        candidate = '${b.name.characters.take(room)}$suffix';
-        n++;
-      } while (seen.contains(candidate));
-      seen.add(candidate);
-      await (_db.update(_db.babies)..where((x) => x.seq.equals(b.seq)))
-          .write(BabiesCompanion(name: Value(candidate), dirty: const Value(true), updatedAt: Value(_now())));
-    }
   }
 
   /// 進入修改前先確認雲端的版本(SPEC 第 4、7 節)。雲端比較新而且手機上沒有未上傳的修改,
@@ -541,6 +591,16 @@ class SyncEngine extends ChangeNotifier {
     _soon?.cancel();
     super.dispose();
   }
+}
+
+/// 資料整合時遇到預期外的狀況。code 只是代碼,不含寶寶名稱或紀錄內容(會寫進診斷記錄)。
+class MergeProblem implements Exception {
+  const MergeProblem(this.code);
+
+  final String code;
+
+  @override
+  String toString() => 'MergeProblem($code)';
 }
 
 class SyncStopped implements Exception {

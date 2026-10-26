@@ -10,7 +10,7 @@ import 'harness.dart';
 /// 要檢查的畫面:從開 App 的畫面怎麼走過去、走到了要看得到什麼(版面檢查與截圖比對共用)。
 class Scenario {
   const Scenario(this.name,
-      {required this.shows, this.go, this.policyAccepted = true, this.theme = 'dark', this.screens, this.calendarVisible = false});
+      {required this.shows, this.go, this.policyAccepted = true, this.theme = 'dark', this.screens, this.calendarVisible = false, this.noBabies = false});
 
   final String name;
 
@@ -25,6 +25,9 @@ class Scenario {
 
   /// 畫面上看得到月曆的格子(見 [minTapTarget])。
   final bool calendarVisible;
+
+  /// 手機上沒有任何寶寶(第一次開啟、重裝之後)。
+  final bool noBabies;
 }
 
 /// 觸控目標至少 48×48 dp(SPEC 第 1 節)。
@@ -68,6 +71,7 @@ final scenarios = <Scenario>[
             of: find.byType(RecordDialog),
             matching: find.bySemanticsLabel(RegExp(r'^（用食反應（排斥|接受|喜歡）|過敏狀況（穩定|風險|過敏））$')),
           )),
+  Scenario('first_baby', noBabies: true, shows: () => find.text('從雲端取回')),
   Scenario('stats', go: (t) => tap(t, find.text('統計')), shows: () => find.textContaining('根莖')),
   Scenario('judgement', go: (t) => tap(t, find.text('食材判斷')), shows: () => find.text('喜好')),
   // 地瓜三筆(正常、腹瀉＋嘔吐、正常)兩個都算正常;南瓜兩筆都腹瀉,顯示腹瀉、嘔吐不顯示。
@@ -96,6 +100,7 @@ Future<void> runScenario(
 }) async {
   final services = (await tester.runAsync<Services>(() async {
     final services = await seededServices(policyAccepted: s.policyAccepted, theme: s.theme);
+    if (s.noBabies) await services.store.db.delete(services.store.db.babies).go();
     await seed?.call(services);
     return services;
   }))!;
