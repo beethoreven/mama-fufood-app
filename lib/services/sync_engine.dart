@@ -82,6 +82,13 @@ class SyncEngine extends ChangeNotifier {
   ConflictResolver? resolver;
 
   SyncState state = SyncState.idle;
+
+  /// 測試用:直接設定狀態並通知畫面(真的同步要連雲端硬碟)。
+  @visibleForTesting
+  void debugSetState(SyncState value) {
+    state = value;
+    notifyListeners();
+  }
   DateTime? _lastAttempt;
   Future<void>? _running;
   Timer? _retry;

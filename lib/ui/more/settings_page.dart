@@ -25,6 +25,16 @@ class SettingsPage extends ConsumerStatefulWidget {
   ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
 
+/// 雲端同步現在的狀態(跟著 SyncEngine 變)。設定頁用它決定雲端開關要不要鎖住:
+/// 鎖的依據是「同步正在跑」,不是這一頁自己的變數,所以離開設定頁再回來,同步還沒完就還是鎖著。
+final syncStateProvider = Provider<SyncState>((ref) {
+  final sync = ref.watch(servicesProvider).sync;
+  void listener() => ref.invalidateSelf();
+  sync.addListener(listener);
+  ref.onDispose(() => sync.removeListener(listener));
+  return sync.state;
+});
+
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool _checking = false;
   bool _toggling = false;
@@ -35,6 +45,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     final settings = settingsOf(ref);
     final raw = settings.raw;
     final user = ref.watch(authUserProvider);
+    final syncing = ref.watch(syncStateProvider) == SyncState.syncing;
+    // 開關的處理中(例如等雲端硬碟授權)或同步正在跑:兩個雲端開關都先鎖住。
+    final cloudLocked = _toggling || syncing;
     final catalog = ref.watch(catalogProvider).value;
     final c = context.colors;
     final store = services.store;
@@ -100,6 +113,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
       ]),
       section('雲端', [
+        if (syncing)
+          ListTile(
+            leading: const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5)),
+            title: const Text('正在同步，請勿關閉 App'),
+            subtitle: const Text('同步完成前，雲端的開關暫時不能切換'),
+          ),
         SwitchListTile(
           title: const Text('紀錄與雲端同步'),
           subtitle: Text(paused
@@ -108,7 +127,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ? '最後同步：${fmt(lastSync)}${syncError != null ? '（上次失敗，稍後自動重試）' : ''}'
                   : '存到你自己的 Google 雲端硬碟中只有本 App 能讀取的區域'),
           value: settings.syncRecords,
-          onChanged: _toggling
+          onChanged: cloudLocked
               ? null
               : (v) async {
                   setState(() => _toggling = true);
@@ -123,7 +142,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           title: const Text('照片存到雲端'),
           subtitle: Text(paused ? '已暫停（未登入）' : '存到你的雲端硬碟「媽媽記副食品/照片」資料夾，上傳成功後才刪掉手機上的照片'),
           value: settings.syncPhotos,
-          onChanged: _toggling
+          onChanged: cloudLocked
               ? null
               : (v) async {
                   setState(() => _toggling = true);
