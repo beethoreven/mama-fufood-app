@@ -152,7 +152,7 @@ tool/check_version.dart   版本號規則檢查
 ### 已知限制
 
 - **Google 登入、每日檢查、雲端同步、照片上雲、匯出與匯入、意見回饋,還沒有在真的 Google Cloud 與後端上跑過**:這些要等 meta repo README 的上線 SOP 做完才能驗證。目前驗證過的是模擬器上的本機功能(月曆、新增與檢視紀錄、統計、食材判斷、設定、寶寶管理、說明頁)和 release 版能正常開啟。
-- iOS 還沒做;第 4 個頁籤先空著(預計做成腹瀉紀錄,屆時匯出格式升到第 2 版)。
+- iOS 還沒做;第 4 個頁籤先空著。目前是上架前的 0.x 版,匯出格式是第 0 版;第 4 個頁籤做成「腹瀉嘔吐」時,匯出格式改成第 1 版,App 升到 1.0.0,第 0 版的匯出檔匯入時由後端轉換。
 - 320 dp 寬的小螢幕,月曆格子寬 45.7 dp,不到 48 dp(見上方畫面測試);放三排的格子在大一級字時字比較小,要在實機上再看一次是否看得清楚。
 - release 版不把記錄印到 logcat,要看記錄只能透過意見回饋。
 - 雲端同步以一支手機為主,兩支手機同時改同一筆時會請使用者選擇。
@@ -426,7 +426,7 @@ tool/check_version.dart   version-number rule check
 ### Known Limitations
 
 - **Google sign-in, the daily check, cloud sync, photo upload, export and import, and feedback have not run against a real Google Cloud project and backend yet**: they can only be verified once the meta repo README's Setup Guide is done. What has been verified is the local functionality on an emulator (calendar, adding and viewing records, statistics, food judgement, settings, baby management, the guide pages) and that the release build launches normally.
-- iOS isn't done yet; the 4th tab is a placeholder for now (planned as a diarrhea log, at which point the export format moves to version 2).
+- iOS isn't done yet; the 4th tab is a placeholder for now. This is the pre-release 0.x line with export format 0; when the 4th tab becomes "diarrhea and vomiting", the export format becomes version 1 and the app 1.0.0, and format-0 export files are converted by the backend on import.
 - On a 320 dp wide screen, calendar cells are 45.7 dp wide, under 48 dp (see the screen tests above); cells with three rows use small text at the larger text size — worth checking on a real phone for legibility.
 - Release builds don't print logs to logcat; logs can only be seen through feedback.
 - Cloud sync is designed around one main phone; when two phones change the same record at the same time, the user is asked to choose.

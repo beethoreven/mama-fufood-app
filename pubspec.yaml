@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # 版本規則見 SPEC_DRAFT.md 第 2 節:x.y.z,x 只在匯出格式改變時動。
 # + 後面是 Android 的版本碼 = x×1000 + y×10 + z(dart run tool/check_version.dart 檢查)。
-version: 1.0.0+1000
+version: 0.1.0+10
 
 # 版本一律釘在當下最新的正式版(2026-10-23 查 pub.dev)。Flutter 也釘在 3.47.7。
 environment:

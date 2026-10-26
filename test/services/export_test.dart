@@ -9,7 +9,7 @@ import 'package:mama_fufood/services/export_keys.dart';
 
 import 'fake_cloud.dart';
 
-Map<String, Object?> sample() => (jsonDecode(File('test/fixtures/export_v1_sample.json').readAsStringSync()) as Map)
+Map<String, Object?> sample() => (jsonDecode(File('test/fixtures/export_v0_sample.json').readAsStringSync()) as Map)
     .cast<String, Object?>();
 
 void main() {
@@ -18,14 +18,14 @@ void main() {
   tearDown(() => tmp.deleteSync(recursive: true));
 
   MffHeader header(String keyId) => MffHeader(
-        formatVersion: 1,
+        formatVersion: ExportFormat.version,
         appVersion: '1.0.0',
         exportedAt: '2026-10-23T08:30:00.000Z',
         keyId: keyId,
         noncePrefix: base64.encode(MffCrypto.randomBytes(8)),
       );
 
-  group('匯出格式：和後端是同一份規則（export_formats/samples/v1.json）', () {
+  group('匯出格式：和後端是同一份規則（export_formats/samples/v0.json）', () {
     test('後端的樣本檔 App 也認得', () {
       final parsed = ExportFormat.parse(sample());
       expect(parsed.babies.map((b) => b.name), ['小寶', '二寶']);
@@ -47,7 +47,7 @@ void main() {
       ('寶寶名稱重複', (d) => (d['babies'] as List)[1]['name'] = '小寶'),
       ('不認得的欄位', (d) => ((d['babies'] as List).first['records'] as List).first['extra'] = 1),
       ('週起始日只有星期一、星期日', (d) => (d['settings'] as Map)['week_start'] = 'saturday'),
-      ('格式版本不對', (d) => d['format_version'] = 2),
+      ('格式版本不對', (d) => d['format_version'] = ExportFormat.version + 1),
     ]) {
       test('擋下：$label', () {
         final d = sample();
