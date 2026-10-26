@@ -44,6 +44,7 @@ class _Draft {
     required this.eatenUnitId,
     this.allergy,
     this.reaction,
+    this.digestive,
     this.note = '',
     required this.photos,
   });
@@ -60,12 +61,13 @@ class _Draft {
   int eatenUnitId;
   Allergy? allergy;
   Reaction? reaction;
+  Digestive? digestive;
   String note;
   List<DraftPhoto> photos;
 
   String signature() => [
         day, hour, minute, groupId, foodId, preparedCenti, preparedUnitId, eatenCenti, eatenUnitId,
-        allergy, reaction, note, photos.map((p) => p.id).join(','),
+        allergy, reaction, digestive, note, photos.map((p) => p.id).join(','),
       ].join('|');
 }
 
@@ -152,6 +154,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
       eatenUnitId: r.eatenUnitId,
       allergy: r.allergy,
       reaction: r.reaction,
+      digestive: r.digestive,
       note: r.note,
       photos: [for (final id in r.photoIds) DraftPhoto.existing(id)],
     );
@@ -390,6 +393,15 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
           ),
         ),
       ),
+      // 5-1. 腹瀉或嘔吐(App 1.0.0):正常和另外兩個互斥,腹瀉、嘔吐可以同時選。
+      _section(
+        '腹瀉或嘔吐',
+        DigestiveChips(
+          readOnly: _readOnly,
+          value: d.digestive,
+          onChanged: (v) => setState(() => d.digestive = v),
+        ),
+      ),
       // 6. 備註、照片(從相簿選,最多 3 張;拍照功能預留)。
       _section(
         '備註',
@@ -534,6 +546,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
         eatenUnitId: original.eatenUnitId,
         allergy: original.allergy,
         reaction: original.reaction,
+        digestive: original.digestive,
         note: original.note,
         photoIds: keep,
         createdAtMs: original.createdAtMs,
@@ -657,6 +670,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
         eatenUnitId: d.eatenUnitId,
         allergy: d.allergy,
         reaction: d.reaction,
+        digestive: d.digestive,
         note: d.note.trim(),
         photoIds: [for (final p in d.photos) p.id],
         createdAtMs: _original?.createdAtMs ?? 0,

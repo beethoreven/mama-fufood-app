@@ -49,6 +49,8 @@ class Records extends Table {
   IntColumn get eatenUnitId => integer()();
   TextColumn get allergy => text().nullable()();
   TextColumn get reaction => text().nullable()();
+  /// 腹瀉或嘔吐(Digestive 的代碼);資料庫第 2 版加的。
+  TextColumn get digestive => text().nullable()();
   TextColumn get note => text().withDefault(const Constant(''))();
   /// 照片的編號,依順序以逗號分隔(最多 3 張)。
   TextColumn get photoIds => text().withDefault(const Constant(''))();
@@ -116,10 +118,15 @@ class AppDb extends _$AppDb {
       ));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          // 第 2 版(App 1.0.0):紀錄加上「腹瀉或嘔吐」。舊紀錄保留,這一欄是空的。
+          if (from < 2) await m.addColumn(records, records.digestive);
+        },
         beforeOpen: (details) async {
           await customStatement('PRAGMA foreign_keys = ON');
         },

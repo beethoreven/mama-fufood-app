@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:archive/archive_io.dart';
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:drift/drift.dart' show Value;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -131,33 +132,9 @@ class ImportService {
       if (total > 4 * 1024 * 1024 * 1024) throw const ImportProblem('檔案太大，無法匯入。');
       final dataEntry = archive.findFile('data.json');
       if (dataEntry == null) throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
-      var data = (jsonDecode(utf8.decode(dataEntry.readBytes()!)) as Map).cast<String, Object?>();
+      final data = (jsonDecode(utf8.decode(dataEntry.readBytes()!)) as Map).cast<String, Object?>();
 
-      // 第 6 步:格式版本比這支 App 舊 → 只把 data.json 送後端逐版轉換(需登入,每人每天 5 次)。
-      final fv = data['format_version'];
-      if (fv is! int) throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
-      if (fv > ExportFormat.version) throw const ImportProblem('這個檔案是用較新版本的 App 匯出的，請先更新 App 再匯入。');
-      if (fv < ExportFormat.version) {
-        progress?.call('轉換舊格式');
-        try {
-          final res = await api.convert(data);
-          if ((res['missing'] as List? ?? const []).isNotEmpty) {
-            // 目前沒有這種欄位;以後有了再做補資料的介面(SPEC 第 4 節)。
-            throw const ImportProblem('這個檔案缺少新版需要的資料，請更新 App 後再試。');
-          }
-          data = (res['data'] as Map).cast<String, Object?>();
-        } on ApiError catch (e) {
-          throw ImportProblem(e.isDailyLimit ? '今天的格式轉換次數已經用完，請明天再試。' : e.message);
-        }
-      }
-
-      // 第 7 步:型別、允許的值、寶寶名稱不重複、照片都在、寶寶總數不超過 8 個。
-      final ParsedExport parsed;
-      try {
-        parsed = ExportFormat.parse(data);
-      } on FormatException catch (e) {
-        throw ImportProblem('檔案的內容不符合格式：${e.message}');
-      }
+      final parsed = await upgradeAndParse(data, progress: progress);
       for (final id in parsed.photoIds) {
         if (archive.findFile('photos/$id.jpg') == null) throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
       }
@@ -287,6 +264,7 @@ class ImportService {
         eatenUnitId: r.eatenUnitId,
         allergy: Value(r.allergy?.code),
         reaction: Value(r.reaction?.code),
+        digestive: Value(r.digestive?.code),
         note: Value(r.note),
         photoIds: Value(r.photoIds.join(',')),
         createdAt: r.createdAtMs,
@@ -298,5 +276,37 @@ class ImportService {
 
   Future<void> cleanup(ImportPlan plan) async {
     if (await plan.dir.exists()) await plan.dir.delete(recursive: true);
+  }
+
+  /// 匯入的第 6、7 步:格式版本比這支 App 舊就只把 data.json 送後端逐版轉換(需登入,每人每天 5 次),
+  /// 再檢查型別、允許的值、寶寶名稱不重複等。
+  @visibleForTesting
+  Future<ParsedExport> upgradeAndParse(Map<String, Object?> data, {void Function(String)? progress}) async {
+    // 第 6 步:格式版本比這支 App 舊 → 只把 data.json 送後端逐版轉換(需登入,每人每天 5 次)。
+    final fv = data['format_version'];
+    if (fv is! int) throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
+    if (fv > ExportFormat.version) throw const ImportProblem('這個檔案是用較新版本的 App 匯出的，請先更新 App 再匯入。');
+    if (fv < ExportFormat.version) {
+      progress?.call('轉換舊格式');
+      try {
+        final res = await api.convert(data);
+        if ((res['missing'] as List? ?? const []).isNotEmpty) {
+          // 目前沒有這種欄位;以後有了再做補資料的介面(SPEC 第 4 節)。
+          throw const ImportProblem('這個檔案缺少新版需要的資料，請更新 App 後再試。');
+        }
+        data = (res['data'] as Map).cast<String, Object?>();
+      } on ApiError catch (e) {
+        throw ImportProblem(e.isDailyLimit ? '今天的格式轉換次數已經用完，請明天再試。' : e.message);
+      }
+    }
+
+    // 第 7 步:型別、允許的值、寶寶名稱不重複、照片都在、寶寶總數不超過 8 個。
+    final ParsedExport parsed;
+    try {
+      parsed = ExportFormat.parse(data);
+    } on FormatException catch (e) {
+      throw ImportProblem('檔案的內容不符合格式：${e.message}');
+    }
+    return parsed;
   }
 }

@@ -70,6 +70,8 @@ final scenarios = <Scenario>[
           )),
   Scenario('stats', go: (t) => tap(t, find.text('統計')), shows: () => find.textContaining('根莖')),
   Scenario('judgement', go: (t) => tap(t, find.text('食材判斷')), shows: () => find.text('喜好')),
+  // 地瓜三筆(正常、腹瀉＋嘔吐、正常)兩個都算正常;南瓜兩筆都腹瀉,顯示腹瀉、嘔吐不顯示。
+  Scenario('digestive', go: (t) => tap(t, find.text('腹瀉嘔吐')), shows: () => find.text('嘔吐')),
   Scenario('settings', go: (t) => openMenu(t, 'App 設定'), shows: () => find.text('週起始日')),
   Scenario('babies', go: (t) => openMenu(t, '寶寶們設定'), shows: () => find.text('二寶')),
   Scenario('import_export', go: (t) => openMenu(t, '匯入/匯出'), shows: () => find.text('匯出')),

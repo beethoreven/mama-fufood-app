@@ -20,10 +20,13 @@ class CalendarTab extends ConsumerStatefulWidget {
   ConsumerState<CalendarTab> createState() => _CalendarTabState();
 }
 
-class _CalendarTabState extends ConsumerState<CalendarTab> {
+class _CalendarTabState extends ConsumerState<CalendarTab> with SingleTickerProviderStateMixin {
   late int _year;
   late int _month;
-  double _drag = 0;
+
+  /// 月份目前被拖開多少(像素):正 = 往右拖(露出上個月),負 = 往左拖(露出下個月)。
+  late final AnimationController _offset = AnimationController.unbounded(vsync: this);
+  double _width = 1;
 
   @override
   void initState() {
@@ -33,17 +36,52 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
     _month = today.month;
   }
 
+  @override
+  void dispose() {
+    _offset.dispose();
+    super.dispose();
+  }
+
   bool get _atStart => _year == Limits.yearMin && _month == 1;
 
   bool get _atEnd => _year == Limits.yearMax && _month == 12;
 
-  void _shift(int delta) {
-    if ((delta < 0 && _atStart) || (delta > 0 && _atEnd)) return;
+  (int, int) _neighbor(int delta) {
+    final m = DateTime.utc(_year, _month + delta);
+    return (m.year, m.month);
+  }
+
+  /// 換月:這個月滑出去、旁邊的月份滑進來,滑完才真的換。年月選單跳月不用動畫。
+  Future<void> _shift(int delta) async {
+    if ((delta < 0 && _atStart) || (delta > 0 && _atEnd) || _offset.isAnimating) return;
+    await _offset.animateTo(-delta * _width, duration: Timing.monthSlide, curve: Curves.easeOutCubic);
+    if (!mounted) return;
+    final (year, month) = _neighbor(delta);
     setState(() {
-      final m = DateTime.utc(_year, _month + delta);
-      _year = m.year;
-      _month = m.month;
+      _year = year;
+      _month = month;
     });
+    _offset.value = 0;
+  }
+
+  void _dragUpdate(DragUpdateDetails d) {
+    if (_offset.isAnimating) return;
+    var next = _offset.value + d.delta.dx;
+    // 第一個月不能再往前、最後一個月不能再往後:往那邊拖只給一點點阻力,不露出不存在的月份。
+    if ((next > 0 && _atStart) || (next < 0 && _atEnd)) next = (next * 0.15).clamp(-24.0, 24.0);
+    _offset.value = next.clamp(-_width, _width);
+  }
+
+  void _dragEnd() {
+    if (_offset.isAnimating) return;
+    final threshold = _width * Timing.monthSwipeFraction;
+    if (_offset.value <= -threshold && !_atEnd) {
+      _shift(1);
+    } else if (_offset.value >= threshold && !_atStart) {
+      _shift(-1);
+    } else {
+      _offset.animateTo(0, duration: Timing.monthSlide, curve: Curves.easeOutCubic);
+    }
   }
 
   @override
@@ -52,31 +90,24 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
     final catalog = ref.watch(catalogProvider).value;
     final settings = settingsOf(ref);
     if (baby == null || catalog == null) return const SizedBox.shrink();
-    final records = knownOnly(ref.watch(monthRecordsProvider((baby.seq, _year, _month))).value ?? const [], catalog);
-    // 上個月最後一天填了「隔天發生過敏」的話,這個月 1 號也要標。
-    final prevMonth = Day(_year, _month, 1).addDays(-1);
-    final prevRecords =
-        knownOnly(ref.watch(monthRecordsProvider((baby.seq, prevMonth.year, prevMonth.month))).value ?? const [], catalog);
-    final allergyDays = allergyMarkedDays([...records, ...prevRecords.where((r) => r.day == prevMonth)]);
-    final byDay = <Day, List<FeedRecord>>{};
-    for (final r in records) {
-      byDay.putIfAbsent(r.day, () => []).add(r);
-    }
-    final weeks = monthGrid(_year, _month, weekStartsMonday: settings.weekStartsMonday);
     final c = context.colors;
+    Widget grid(int year, int month) => _MonthGrid(
+          key: ValueKey('$year-$month'),
+          babySeq: baby.seq,
+          year: year,
+          month: month,
+          catalog: catalog,
+          weekStartsMonday: settings.weekStartsMonday,
+          onOpenDay: (day, records) => _openDay(context, baby.seq, day, records),
+        );
     return LayoutBuilder(builder: (context, constraints) {
-      final width = constraints.maxWidth;
+      _width = constraints.maxWidth;
       return GestureDetector(
-        // 左右滑動換月:拖曳超過一半寬度才換,只看距離,不看甩動速度。
-        onHorizontalDragStart: (_) => _drag = 0,
-        onHorizontalDragUpdate: (d) => setState(() => _drag += d.delta.dx),
-        onHorizontalDragEnd: (_) {
-          final threshold = width * Timing.monthSwipeFraction;
-          if (_drag <= -threshold) _shift(1);
-          if (_drag >= threshold) _shift(-1);
-          setState(() => _drag = 0);
-        },
-        onHorizontalDragCancel: () => setState(() => _drag = 0),
+        // 左右滑動換月:月份跟著手指移動,放手時拖超過一半寬度才換(只看距離,不看甩動速度),
+        // 換的時候這個月滑走、旁邊的月份滑進來;不到一半就滑回原位。
+        onHorizontalDragUpdate: _dragUpdate,
+        onHorizontalDragEnd: (_) => _dragEnd(),
+        onHorizontalDragCancel: _dragEnd,
         child: Column(children: [
           _header(context),
           Container(
@@ -88,27 +119,29 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
             ]),
           ),
           Expanded(
-            child: Transform.translate(
-              offset: Offset(_drag.clamp(-width, width) * 0.35, 0),
-              child: Column(children: [
-                for (final week in weeks)
-                  Expanded(
-                    child: Row(children: [
-                      for (final day in week)
-                        Expanded(
-                          child: day == null
-                              ? Container(decoration: BoxDecoration(border: Border.all(color: c.border, width: 0.25)))
-                              : _DayCell(
-                                  day: day,
-                                  records: byDay[day] ?? const [],
-                                  catalog: catalog,
-                                  allergy: allergyDays.contains(day),
-                                  onTap: () => _openDay(context, baby.seq, day, byDay[day] ?? const []),
-                                ),
+            child: ClipRect(
+              child: AnimatedBuilder(
+                animation: _offset,
+                builder: (context, _) {
+                  final dx = _offset.value;
+                  // 往左拖露出下個月(在右邊),往右拖露出上個月(在左邊)。
+                  final neighbor = dx < 0 && !_atEnd
+                      ? _neighbor(1)
+                      : dx > 0 && !_atStart
+                          ? _neighbor(-1)
+                          : null;
+                  return Stack(children: [
+                    if (neighbor != null)
+                      Positioned.fill(
+                        child: Transform.translate(
+                          offset: Offset(dx < 0 ? dx + _width : dx - _width, 0),
+                          child: grid(neighbor.$1, neighbor.$2),
                         ),
-                    ]),
-                  ),
-              ]),
+                      ),
+                    Positioned.fill(child: Transform.translate(offset: Offset(dx, 0), child: grid(_year, _month))),
+                  ]);
+                },
+              ),
             ),
           ),
         ]),
@@ -166,14 +199,79 @@ class _CalendarTabState extends ConsumerState<CalendarTab> {
   }
 }
 
+/// 一個月的格子。換月動畫時,這個月與旁邊的月份各一份。
+class _MonthGrid extends ConsumerWidget {
+  const _MonthGrid({
+    super.key,
+    required this.babySeq,
+    required this.year,
+    required this.month,
+    required this.catalog,
+    required this.weekStartsMonday,
+    required this.onOpenDay,
+  });
+
+  final int babySeq;
+  final int year;
+  final int month;
+  final Catalog catalog;
+  final bool weekStartsMonday;
+  final void Function(Day day, List<FeedRecord> records) onOpenDay;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final records = knownOnly(ref.watch(monthRecordsProvider((babySeq, year, month))).value ?? const [], catalog);
+    // 上個月最後一天填了「隔天發生過敏」的話,這個月 1 號也要標。
+    final prevMonth = Day(year, month, 1).addDays(-1);
+    final prevRecords =
+        knownOnly(ref.watch(monthRecordsProvider((babySeq, prevMonth.year, prevMonth.month))).value ?? const [], catalog);
+    final allergyDays = allergyMarkedDays([...records, ...prevRecords.where((r) => r.day == prevMonth)]);
+    final digestiveDays = digestiveMarkedDays(records);
+    final byDay = <Day, List<FeedRecord>>{};
+    for (final r in records) {
+      byDay.putIfAbsent(r.day, () => []).add(r);
+    }
+    final c = context.colors;
+    return Container(
+      color: c.bg,
+      child: Column(children: [
+        for (final week in monthGrid(year, month, weekStartsMonday: weekStartsMonday))
+          Expanded(
+            child: Row(children: [
+              for (final day in week)
+                Expanded(
+                  child: day == null
+                      ? Container(decoration: BoxDecoration(border: Border.all(color: c.border, width: 0.25)))
+                      : _DayCell(
+                          day: day,
+                          records: byDay[day] ?? const [],
+                          catalog: catalog,
+                          mark: switch ((allergyDays.contains(day), digestiveDays.contains(day))) {
+                            (true, true) => _DayMark.both,
+                            (true, false) => _DayMark.allergy,
+                            (false, true) => _DayMark.digestive,
+                            (false, false) => null,
+                          },
+                          onTap: () => onOpenDay(day, byDay[day] ?? const []),
+                        ),
+                ),
+            ]),
+          ),
+      ]),
+    );
+  }
+}
+
+/// 月曆格子的底色(SPEC 第 14 節):過敏淡紅、腹瀉或嘔吐淡黃、同一天兩種都有淡紫。
+enum _DayMark { allergy, digestive, both }
+
 class _DayCell extends StatelessWidget {
-  const _DayCell(
-      {required this.day, required this.records, required this.catalog, required this.allergy, required this.onTap});
+  const _DayCell({required this.day, required this.records, required this.catalog, required this.mark, required this.onTap});
 
   final Day day;
 
-  /// 當天或前一天的紀錄有過敏狀況:格子標淡紅色(見 allergyMarkedDays)。
-  final bool allergy;
+  /// 格子底色:過敏(當天過敏的那天、隔天過敏的下一天)、腹瀉或嘔吐、兩種都有;null = 不標。
+  final _DayMark? mark;
   final List<FeedRecord> records;
   final Catalog catalog;
   final VoidCallback onTap;
@@ -188,7 +286,13 @@ class _DayCell extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: allergy ? c.danger.withValues(alpha: 0.16) : null,
+          color: switch (mark) {
+            _DayMark.allergy => c.danger.withValues(alpha: 0.16),
+            _DayMark.digestive => c.warn.withValues(alpha: 0.22),
+            // 紫色不在主題色裡:淺色、深色模式都用同一個紫,透明度調到兩邊都看得出來。
+            _DayMark.both => const Color(0xFF9B6BD6).withValues(alpha: 0.24),
+            null => null,
+          },
           border: Border.all(color: c.border, width: 0.25),
         ),
         padding: const EdgeInsets.fromLTRB(1, 3, 1, 2),

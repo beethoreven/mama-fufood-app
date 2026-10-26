@@ -9,7 +9,7 @@ import 'package:mama_fufood/services/export_keys.dart';
 
 import 'fake_cloud.dart';
 
-Map<String, Object?> sample() => (jsonDecode(File('test/fixtures/export_v0_sample.json').readAsStringSync()) as Map)
+Map<String, Object?> sample() => (jsonDecode(File('test/fixtures/export_v1_sample.json').readAsStringSync()) as Map)
     .cast<String, Object?>();
 
 void main() {
@@ -25,7 +25,7 @@ void main() {
         noncePrefix: base64.encode(MffCrypto.randomBytes(8)),
       );
 
-  group('匯出格式：和後端是同一份規則（export_formats/samples/v0.json）', () {
+  group('匯出格式：和後端是同一份規則（export_formats/samples/v1.json）', () {
     test('後端的樣本檔 App 也認得', () {
       final parsed = ExportFormat.parse(sample());
       expect(parsed.babies.map((b) => b.name), ['小寶', '二寶']);

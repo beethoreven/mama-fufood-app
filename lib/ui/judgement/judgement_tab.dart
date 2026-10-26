@@ -9,10 +9,14 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/wheel_picker.dart';
 
-/// 頁籤 3:食材判斷(SPEC 第 7 節)。篩選分組、食材(食材須先選分組,可只選分組);
-/// 列出所選分組的全部食材,各附過敏與喜好圖示;紀錄不足的位置留空。
+/// 頁籤 3「食材判斷」與頁籤 4「腹瀉嘔吐」(SPEC 第 7 節、第 14 節)。兩頁版面一樣:
+/// 篩選分組、食材(食材須先選分組,可只選分組),列出所選分組的全部食材,各附兩個圖示——
+/// 頁籤 3 是喜好與過敏,頁籤 4 是腹瀉與嘔吐;紀錄不足的位置留空。
 class JudgementTab extends ConsumerStatefulWidget {
-  const JudgementTab({super.key});
+  const JudgementTab({super.key, this.digestive = false});
+
+  /// true = 頁籤 4「腹瀉嘔吐」。
+  final bool digestive;
 
   @override
   ConsumerState<JudgementTab> createState() => _JudgementTabState();
@@ -79,8 +83,8 @@ class _JudgementTabState extends ConsumerState<JudgementTab> {
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 2),
         child: Row(children: [
           const Spacer(),
-          SizedBox(width: 56, child: Center(child: Text('喜好', style: Theme.of(context).textTheme.labelSmall))),
-          SizedBox(width: 56, child: Center(child: Text('過敏', style: Theme.of(context).textTheme.labelSmall))),
+          for (final title in widget.digestive ? const ['腹瀉', '嘔吐'] : const ['喜好', '過敏'])
+            SizedBox(width: 56, child: Center(child: Text(title, style: Theme.of(context).textTheme.labelSmall))),
         ]),
       ),
       Expanded(
@@ -93,14 +97,20 @@ class _JudgementTabState extends ConsumerState<JudgementTab> {
                 for (final f in shown)
                   Builder(builder: (context) {
                     final mine = records.where((r) => r.foodId == f.id).toList();
+                    final digestive = widget.digestive ? judgeDigestive(mine) : null;
                     return SizedBox(
                       height: 52,
                       child: Row(children: [
                         Text(f.emoji, style: const TextStyle(fontSize: 20)),
                         const SizedBox(width: 10),
                         Expanded(child: Text(f.name, style: weight(Theme.of(context).textTheme.bodyLarge!, 500))),
-                        SizedBox(width: 56, child: Center(child: PreferenceIcon(judgePreference(mine, today: today)))),
-                        SizedBox(width: 56, child: Center(child: AllergyIcon(judgeAllergy(mine)))),
+                        if (digestive != null) ...[
+                          SizedBox(width: 56, child: Center(child: DigestiveIcon(DigestiveKind.diarrhea, digestive.diarrhea))),
+                          SizedBox(width: 56, child: Center(child: DigestiveIcon(DigestiveKind.vomiting, digestive.vomiting))),
+                        ] else ...[
+                          SizedBox(width: 56, child: Center(child: PreferenceIcon(judgePreference(mine, today: today)))),
+                          SizedBox(width: 56, child: Center(child: AllergyIcon(judgeAllergy(mine)))),
+                        ],
                       ]),
                     );
                   }),

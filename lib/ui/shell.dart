@@ -73,7 +73,7 @@ class MainShell extends ConsumerWidget {
     (Symbols.calendar_month_rounded, '行事曆'),
     (Symbols.bar_chart_rounded, '統計'),
     (Symbols.fact_check_rounded, '食材判斷'),
-    (Symbols.more_horiz_rounded, '預留'),
+    (Symbols.sick_rounded, '腹瀉嘔吐'),
   ];
 
   @override
@@ -91,8 +91,8 @@ class MainShell extends ConsumerWidget {
         body: sub != null
             ? KeyedSubtree(key: ValueKey(shell.stack.length), child: sub.builder(context))
             : IndexedStack(
-                index: shell.tab.clamp(0, 2),
-                children: const [CalendarTab(), StatsTab(), JudgementTab()],
+                index: shell.tab.clamp(0, 3),
+                children: const [CalendarTab(), StatsTab(), JudgementTab(), JudgementTab(digestive: true)],
               ),
         bottomNavigationBar: Container(
           decoration: BoxDecoration(color: c.surface, border: Border(top: BorderSide(color: c.border))),
@@ -108,8 +108,6 @@ class MainShell extends ConsumerWidget {
                         icon: _tabs[i].$1,
                         label: _tabs[i].$2,
                         selected: i == shell.tab,
-                        // 頁籤 4 先空著預留:半透明,點了沒反應(SPEC 第 6 節)。
-                        enabled: i < 3,
                         onTap: () => ref.read(shellProvider.notifier).selectTab(i),
                       ),
                     ),
@@ -124,12 +122,11 @@ class MainShell extends ConsumerWidget {
 }
 
 class _TabItem extends StatelessWidget {
-  const _TabItem({required this.icon, required this.label, required this.selected, required this.enabled, required this.onTap});
+  const _TabItem({required this.icon, required this.label, required this.selected, required this.onTap});
 
   final IconData icon;
   final String label;
   final bool selected;
-  final bool enabled;
   final VoidCallback onTap;
 
   @override
@@ -145,7 +142,6 @@ class _TabItem extends StatelessWidget {
             style: weight(Theme.of(context).textTheme.labelSmall!.copyWith(color: color, fontSize: 11), selected ? 500 : 400)),
       ],
     );
-    if (!enabled) return Opacity(opacity: 0.35, child: content);
     return InkWell(onTap: onTap, child: Semantics(selected: selected, button: true, child: content));
   }
 }

@@ -5,7 +5,7 @@ import 'package:mama_fufood/domain/record.dart';
 
 var _n = 0;
 
-FeedRecord rec({Allergy? allergy, Reaction? reaction, Day? day}) {
+FeedRecord rec({Allergy? allergy, Reaction? reaction, Digestive? digestive, Day? day}) {
   final d = day ?? const Day(2026, 10, 1);
   _n += 1;
   return FeedRecord(
@@ -20,6 +20,7 @@ FeedRecord rec({Allergy? allergy, Reaction? reaction, Day? day}) {
     eatenUnitId: 1,
     allergy: allergy,
     reaction: reaction,
+    digestive: digestive,
     note: '',
     photoIds: const [],
     createdAtMs: 0,
@@ -112,6 +113,38 @@ void main() {
       final before = reactions({Reaction.reject: 1}, day: const Day(2026, 7, 22));
       // 近 3 個月 = 11 筆喜歡(含 7/23),比最近 10 筆多 → 採用近 3 個月。
       expect(judgePreference([...edge, ...before], today: today), PreferenceLevel.like);
+    });
+  });
+
+  group('腹瀉與嘔吐（兩個等級，0.4 為界，各自算）', () {
+    List<FeedRecord> gi(List<Digestive?> values) => [for (final v in values) rec(digestive: v)];
+    const n = Digestive.normal, d = Digestive.diarrhea, v = Digestive.vomiting, b = Digestive.both;
+
+    test('平均剛好 0.4 算正常，超過就是有發生', () {
+      expect(judgeDigestive(gi([d, d, n, n, n])).diarrhea, DigestiveLevel.normal); // 2/5 = 0.4
+      expect(judgeDigestive(gi([d, d, d, n, n])).diarrhea, DigestiveLevel.occurred); // 0.6
+    });
+
+    test('腹瀉和嘔吐各自算；「都有」兩邊都算', () {
+      final r = judgeDigestive(gi([b, b, v, n]));
+      expect(r.diarrhea, DigestiveLevel.occurred); // 2/4 = 0.5
+      expect(r.vomiting, DigestiveLevel.occurred); // 3/4
+      final only = judgeDigestive(gi([d, d, n]));
+      expect(only.diarrhea, DigestiveLevel.occurred);
+      expect(only.vomiting, DigestiveLevel.normal);
+    });
+
+    test('只看平均：10 筆裡 1 筆腹瀉還是正常（不像過敏「出現過就至少一級」）', () {
+      expect(judgeDigestive(gi([d, n, n, n, n, n, n, n, n, n])).diarrhea, DigestiveLevel.normal);
+    });
+
+    test('沒填的不算；有填的不到 3 筆而且從沒發生過 → 紀錄不足', () {
+      expect(judgeDigestive(gi([n, n, null, null])).diarrhea, isNull);
+      expect(judgeDigestive(gi([])).vomiting, isNull);
+      expect(judgeDigestive(gi([n, n, n])).diarrhea, DigestiveLevel.normal);
+      // 發生過就照平均顯示,即使只有 1 筆。
+      expect(judgeDigestive(gi([d])).diarrhea, DigestiveLevel.occurred);
+      expect(judgeDigestive(gi([d])).vomiting, isNull);
     });
   });
 }

@@ -594,6 +594,17 @@ class $RecordsTable extends Records with TableInfo<$RecordsTable, RecordRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _digestiveMeta = const VerificationMeta(
+    'digestive',
+  );
+  @override
+  late final GeneratedColumn<String> digestive = GeneratedColumn<String>(
+    'digestive',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _noteMeta = const VerificationMeta('note');
   @override
   late final GeneratedColumn<String> note = GeneratedColumn<String>(
@@ -691,6 +702,7 @@ class $RecordsTable extends Records with TableInfo<$RecordsTable, RecordRow> {
     eatenUnitId,
     allergy,
     reaction,
+    digestive,
     note,
     photoIds,
     createdAt,
@@ -809,6 +821,12 @@ class $RecordsTable extends Records with TableInfo<$RecordsTable, RecordRow> {
         reaction.isAcceptableOrUnknown(data['reaction']!, _reactionMeta),
       );
     }
+    if (data.containsKey('digestive')) {
+      context.handle(
+        _digestiveMeta,
+        digestive.isAcceptableOrUnknown(data['digestive']!, _digestiveMeta),
+      );
+    }
     if (data.containsKey('note')) {
       context.handle(
         _noteMeta,
@@ -915,6 +933,10 @@ class $RecordsTable extends Records with TableInfo<$RecordsTable, RecordRow> {
         DriftSqlType.string,
         data['${effectivePrefix}reaction'],
       ),
+      digestive: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}digestive'],
+      ),
       note: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}note'],
@@ -967,6 +989,9 @@ class RecordRow extends DataClass implements Insertable<RecordRow> {
   final int eatenUnitId;
   final String? allergy;
   final String? reaction;
+
+  /// 腹瀉或嘔吐(Digestive 的代碼);資料庫第 2 版加的。
+  final String? digestive;
   final String note;
 
   /// 照片的編號,依順序以逗號分隔(最多 3 張)。
@@ -993,6 +1018,7 @@ class RecordRow extends DataClass implements Insertable<RecordRow> {
     required this.eatenUnitId,
     this.allergy,
     this.reaction,
+    this.digestive,
     required this.note,
     required this.photoIds,
     required this.createdAt,
@@ -1019,6 +1045,9 @@ class RecordRow extends DataClass implements Insertable<RecordRow> {
     }
     if (!nullToAbsent || reaction != null) {
       map['reaction'] = Variable<String>(reaction);
+    }
+    if (!nullToAbsent || digestive != null) {
+      map['digestive'] = Variable<String>(digestive);
     }
     map['note'] = Variable<String>(note);
     map['photo_ids'] = Variable<String>(photoIds);
@@ -1050,6 +1079,9 @@ class RecordRow extends DataClass implements Insertable<RecordRow> {
       reaction: reaction == null && nullToAbsent
           ? const Value.absent()
           : Value(reaction),
+      digestive: digestive == null && nullToAbsent
+          ? const Value.absent()
+          : Value(digestive),
       note: Value(note),
       photoIds: Value(photoIds),
       createdAt: Value(createdAt),
@@ -1080,6 +1112,7 @@ class RecordRow extends DataClass implements Insertable<RecordRow> {
       eatenUnitId: serializer.fromJson<int>(json['eatenUnitId']),
       allergy: serializer.fromJson<String?>(json['allergy']),
       reaction: serializer.fromJson<String?>(json['reaction']),
+      digestive: serializer.fromJson<String?>(json['digestive']),
       note: serializer.fromJson<String>(json['note']),
       photoIds: serializer.fromJson<String>(json['photoIds']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
@@ -1105,6 +1138,7 @@ class RecordRow extends DataClass implements Insertable<RecordRow> {
       'eatenUnitId': serializer.toJson<int>(eatenUnitId),
       'allergy': serializer.toJson<String?>(allergy),
       'reaction': serializer.toJson<String?>(reaction),
+      'digestive': serializer.toJson<String?>(digestive),
       'note': serializer.toJson<String>(note),
       'photoIds': serializer.toJson<String>(photoIds),
       'createdAt': serializer.toJson<int>(createdAt),
@@ -1128,6 +1162,7 @@ class RecordRow extends DataClass implements Insertable<RecordRow> {
     int? eatenUnitId,
     Value<String?> allergy = const Value.absent(),
     Value<String?> reaction = const Value.absent(),
+    Value<String?> digestive = const Value.absent(),
     String? note,
     String? photoIds,
     int? createdAt,
@@ -1148,6 +1183,7 @@ class RecordRow extends DataClass implements Insertable<RecordRow> {
     eatenUnitId: eatenUnitId ?? this.eatenUnitId,
     allergy: allergy.present ? allergy.value : this.allergy,
     reaction: reaction.present ? reaction.value : this.reaction,
+    digestive: digestive.present ? digestive.value : this.digestive,
     note: note ?? this.note,
     photoIds: photoIds ?? this.photoIds,
     createdAt: createdAt ?? this.createdAt,
@@ -1180,6 +1216,7 @@ class RecordRow extends DataClass implements Insertable<RecordRow> {
           : this.eatenUnitId,
       allergy: data.allergy.present ? data.allergy.value : this.allergy,
       reaction: data.reaction.present ? data.reaction.value : this.reaction,
+      digestive: data.digestive.present ? data.digestive.value : this.digestive,
       note: data.note.present ? data.note.value : this.note,
       photoIds: data.photoIds.present ? data.photoIds.value : this.photoIds,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -1207,6 +1244,7 @@ class RecordRow extends DataClass implements Insertable<RecordRow> {
           ..write('eatenUnitId: $eatenUnitId, ')
           ..write('allergy: $allergy, ')
           ..write('reaction: $reaction, ')
+          ..write('digestive: $digestive, ')
           ..write('note: $note, ')
           ..write('photoIds: $photoIds, ')
           ..write('createdAt: $createdAt, ')
@@ -1232,6 +1270,7 @@ class RecordRow extends DataClass implements Insertable<RecordRow> {
     eatenUnitId,
     allergy,
     reaction,
+    digestive,
     note,
     photoIds,
     createdAt,
@@ -1256,6 +1295,7 @@ class RecordRow extends DataClass implements Insertable<RecordRow> {
           other.eatenUnitId == this.eatenUnitId &&
           other.allergy == this.allergy &&
           other.reaction == this.reaction &&
+          other.digestive == this.digestive &&
           other.note == this.note &&
           other.photoIds == this.photoIds &&
           other.createdAt == this.createdAt &&
@@ -1278,6 +1318,7 @@ class RecordsCompanion extends UpdateCompanion<RecordRow> {
   final Value<int> eatenUnitId;
   final Value<String?> allergy;
   final Value<String?> reaction;
+  final Value<String?> digestive;
   final Value<String> note;
   final Value<String> photoIds;
   final Value<int> createdAt;
@@ -1299,6 +1340,7 @@ class RecordsCompanion extends UpdateCompanion<RecordRow> {
     this.eatenUnitId = const Value.absent(),
     this.allergy = const Value.absent(),
     this.reaction = const Value.absent(),
+    this.digestive = const Value.absent(),
     this.note = const Value.absent(),
     this.photoIds = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -1321,6 +1363,7 @@ class RecordsCompanion extends UpdateCompanion<RecordRow> {
     required int eatenUnitId,
     this.allergy = const Value.absent(),
     this.reaction = const Value.absent(),
+    this.digestive = const Value.absent(),
     this.note = const Value.absent(),
     this.photoIds = const Value.absent(),
     required int createdAt,
@@ -1354,6 +1397,7 @@ class RecordsCompanion extends UpdateCompanion<RecordRow> {
     Expression<int>? eatenUnitId,
     Expression<String>? allergy,
     Expression<String>? reaction,
+    Expression<String>? digestive,
     Expression<String>? note,
     Expression<String>? photoIds,
     Expression<int>? createdAt,
@@ -1376,6 +1420,7 @@ class RecordsCompanion extends UpdateCompanion<RecordRow> {
       if (eatenUnitId != null) 'eaten_unit_id': eatenUnitId,
       if (allergy != null) 'allergy': allergy,
       if (reaction != null) 'reaction': reaction,
+      if (digestive != null) 'digestive': digestive,
       if (note != null) 'note': note,
       if (photoIds != null) 'photo_ids': photoIds,
       if (createdAt != null) 'created_at': createdAt,
@@ -1400,6 +1445,7 @@ class RecordsCompanion extends UpdateCompanion<RecordRow> {
     Value<int>? eatenUnitId,
     Value<String?>? allergy,
     Value<String?>? reaction,
+    Value<String?>? digestive,
     Value<String>? note,
     Value<String>? photoIds,
     Value<int>? createdAt,
@@ -1422,6 +1468,7 @@ class RecordsCompanion extends UpdateCompanion<RecordRow> {
       eatenUnitId: eatenUnitId ?? this.eatenUnitId,
       allergy: allergy ?? this.allergy,
       reaction: reaction ?? this.reaction,
+      digestive: digestive ?? this.digestive,
       note: note ?? this.note,
       photoIds: photoIds ?? this.photoIds,
       createdAt: createdAt ?? this.createdAt,
@@ -1472,6 +1519,9 @@ class RecordsCompanion extends UpdateCompanion<RecordRow> {
     if (reaction.present) {
       map['reaction'] = Variable<String>(reaction.value);
     }
+    if (digestive.present) {
+      map['digestive'] = Variable<String>(digestive.value);
+    }
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
@@ -1514,6 +1564,7 @@ class RecordsCompanion extends UpdateCompanion<RecordRow> {
           ..write('eatenUnitId: $eatenUnitId, ')
           ..write('allergy: $allergy, ')
           ..write('reaction: $reaction, ')
+          ..write('digestive: $digestive, ')
           ..write('note: $note, ')
           ..write('photoIds: $photoIds, ')
           ..write('createdAt: $createdAt, ')
@@ -2804,6 +2855,7 @@ typedef $$RecordsTableCreateCompanionBuilder = RecordsCompanion Function({
   required int eatenUnitId,
   Value<String?> allergy,
   Value<String?> reaction,
+  Value<String?> digestive,
   Value<String> note,
   Value<String> photoIds,
   required int createdAt,
@@ -2826,6 +2878,7 @@ typedef $$RecordsTableUpdateCompanionBuilder = RecordsCompanion Function({
   Value<int> eatenUnitId,
   Value<String?> allergy,
   Value<String?> reaction,
+  Value<String?> digestive,
   Value<String> note,
   Value<String> photoIds,
   Value<int> createdAt,
@@ -2901,6 +2954,11 @@ class $$RecordsTableFilterComposer extends Composer<_$AppDb, $RecordsTable> {
 
   ColumnFilters<String> get reaction => $composableBuilder(
     column: $table.reaction,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get digestive => $composableBuilder(
+    column: $table.digestive,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3008,6 +3066,11 @@ class $$RecordsTableOrderingComposer extends Composer<_$AppDb, $RecordsTable> {
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get digestive => $composableBuilder(
+    column: $table.digestive,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get note => $composableBuilder(
     column: $table.note,
     builder: (column) => ColumnOrderings(column),
@@ -3097,6 +3160,9 @@ class $$RecordsTableAnnotationComposer
   GeneratedColumn<String> get reaction =>
       $composableBuilder(column: $table.reaction, builder: (column) => column);
 
+  GeneratedColumn<String> get digestive =>
+      $composableBuilder(column: $table.digestive, builder: (column) => column);
+
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
 
@@ -3161,6 +3227,7 @@ class $$RecordsTableTableManager
                 Value<int> eatenUnitId = const Value.absent(),
                 Value<String?> allergy = const Value.absent(),
                 Value<String?> reaction = const Value.absent(),
+                Value<String?> digestive = const Value.absent(),
                 Value<String> note = const Value.absent(),
                 Value<String> photoIds = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
@@ -3182,6 +3249,7 @@ class $$RecordsTableTableManager
                 eatenUnitId: eatenUnitId,
                 allergy: allergy,
                 reaction: reaction,
+                digestive: digestive,
                 note: note,
                 photoIds: photoIds,
                 createdAt: createdAt,
@@ -3205,6 +3273,7 @@ class $$RecordsTableTableManager
                 required int eatenUnitId,
                 Value<String?> allergy = const Value.absent(),
                 Value<String?> reaction = const Value.absent(),
+                Value<String?> digestive = const Value.absent(),
                 Value<String> note = const Value.absent(),
                 Value<String> photoIds = const Value.absent(),
                 required int createdAt,
@@ -3226,6 +3295,7 @@ class $$RecordsTableTableManager
                 eatenUnitId: eatenUnitId,
                 allergy: allergy,
                 reaction: reaction,
+                digestive: digestive,
                 note: note,
                 photoIds: photoIds,
                 createdAt: createdAt,

@@ -3,11 +3,12 @@ import '../core/text.dart';
 import '../core/time.dart';
 import '../domain/record.dart';
 
-/// 匯出格式第 0 版的 data.json(上架前的格式,App 0.x;EXPORT_FORMAT_DRAFT.md 第 5 節)。
-/// 後端 export_formats/v0.json 是同一份規則;兩邊都要通過 export_formats/samples/v0.json。
+/// 匯出格式第 1 版的 data.json(App 1.x;EXPORT_FORMAT_DRAFT.md 第 5 節)。
+/// 後端 export_formats/v1.json 是同一份規則;兩邊都要通過 export_formats/samples/v1.json。
+/// 第 0 版(上架前,App 0.x,沒有 digestive)的檔案匯入時由後端轉成第 1 版。
 abstract final class ExportFormat {
   /// 格式版本 = App 的主版本號 x(SPEC 第 2 節)。改格式時要升 x,並在後端新增轉換程式。
-  static const version = 0;
+  static const version = 1;
 
   static Map<String, Object?> encodeRecord(FeedRecord r, {required bool photosAsPaths}) => {
         'id': r.id,
@@ -20,6 +21,7 @@ abstract final class ExportFormat {
         'eaten_unit_id': r.eatenUnitId,
         'allergy': r.allergy?.code,
         'reaction': r.reaction?.code,
+        'digestive': r.digestive?.code,
         'note': r.note,
         'photos': [for (final id in r.photoIds) photosAsPaths ? 'photos/$id.jpg' : id],
         'created_at': TimeRules.isoMillis(r.createdAtMs),
@@ -52,11 +54,16 @@ abstract final class ExportFormat {
     }
     final allergyCode = j['allergy'];
     final reactionCode = j['reaction'];
+    // 雲端同步的紀錄可能來自還沒更新的手機(沒有這個欄位),當成沒填;匯入檔則由 parse() 要求一定要有。
+    final digestiveCode = j['digestive'];
     if (allergyCode != null && !Allergy.values.any((a) => a.code == allergyCode)) {
       throw const FormatException('過敏狀況的值不對');
     }
     if (reactionCode != null && !Reaction.values.any((r) => r.code == reactionCode)) {
       throw const FormatException('用食反應的值不對');
+    }
+    if (digestiveCode != null && !Digestive.values.any((d) => d.code == digestiveCode)) {
+      throw const FormatException('腹瀉或嘔吐的值不對');
     }
     final note = str('note');
     if (charCount(note) > Limits.noteMaxChars) throw const FormatException('備註超過 500 字');
@@ -85,6 +92,7 @@ abstract final class ExportFormat {
       eatenUnitId: integer('eaten_unit_id'),
       allergy: Allergy.fromCode(allergyCode as String?),
       reaction: Reaction.fromCode(reactionCode as String?),
+      digestive: Digestive.fromCode(digestiveCode as String?),
       note: note,
       photoIds: photoIds,
       createdAtMs: created,
@@ -94,7 +102,7 @@ abstract final class ExportFormat {
 
   static const _recordKeys = {
     'id', 'time', 'tz_offset', 'food_id', 'prepared_amount', 'prepared_unit_id', 'eaten_amount', 'eaten_unit_id',
-    'allergy', 'reaction', 'note', 'photos', 'created_at', 'updated_at',
+    'allergy', 'reaction', 'digestive', 'note', 'photos', 'created_at', 'updated_at',
   };
 
   /// 整份 data.json 的檢查(匯入第 7 步)。回傳解析好的寶寶與紀錄;不合就丟 FormatException。

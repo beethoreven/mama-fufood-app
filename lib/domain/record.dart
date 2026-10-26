@@ -35,6 +35,33 @@ enum Reaction {
   static Reaction? fromCode(String? code) => code == null ? null : values.firstWhere((r) => r.code == code);
 }
 
+/// 腹瀉或嘔吐(可取消,未選=不納入運算)。代碼是匯出格式的固定值(匯出格式第 1 版起)。
+/// 「正常」和另外兩個互斥;腹瀉、嘔吐可以同時有。
+enum Digestive {
+  normal('normal', '正常', hasDiarrhea: false, hasVomiting: false),
+  diarrhea('diarrhea', '腹瀉', hasDiarrhea: true, hasVomiting: false),
+  vomiting('vomiting', '嘔吐', hasDiarrhea: false, hasVomiting: true),
+  both('diarrhea_vomiting', '腹瀉、嘔吐', hasDiarrhea: true, hasVomiting: true);
+
+  const Digestive(this.code, this.label, {required this.hasDiarrhea, required this.hasVomiting});
+
+  final String code;
+  final String label;
+  final bool hasDiarrhea;
+  final bool hasVomiting;
+
+  static Digestive? fromCode(String? code) => code == null ? null : values.firstWhere((d) => d.code == code);
+
+  /// 依勾選的腹瀉、嘔吐組出值(兩個都沒勾就是 null,不是「正常」)。
+  static Digestive? fromFlags({required bool diarrhea, required bool vomiting}) => diarrhea && vomiting
+      ? Digestive.both
+      : diarrhea
+          ? Digestive.diarrhea
+          : vomiting
+              ? Digestive.vomiting
+              : null;
+}
+
 /// 一筆副食品紀錄。
 class FeedRecord {
   const FeedRecord({
@@ -49,6 +76,7 @@ class FeedRecord {
     required this.eatenUnitId,
     required this.allergy,
     required this.reaction,
+    this.digestive,
     required this.note,
     required this.photoIds,
     required this.createdAtMs,
@@ -66,6 +94,9 @@ class FeedRecord {
   final int eatenUnitId;
   final Allergy? allergy;
   final Reaction? reaction;
+
+  /// 腹瀉或嘔吐;null = 沒填。
+  final Digestive? digestive;
   final String note;
   final List<String> photoIds;
   final int createdAtMs;

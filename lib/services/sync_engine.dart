@@ -320,6 +320,7 @@ class SyncEngine extends ChangeNotifier {
           eatenUnitId: r.eatenUnitId,
           allergy: Value(r.allergy?.code),
           reaction: Value(r.reaction?.code),
+          digestive: Value(r.digestive?.code),
           note: Value(r.note),
           photoIds: Value(r.photoIds.join(',')),
           createdAt: r.createdAtMs,

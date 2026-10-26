@@ -53,6 +53,9 @@ abstract final class Timing {
   /// 換月需拖曳超過一半寬度(只看距離,不看甩動速度)。
   static const monthSwipeFraction = 0.5;
 
+  /// 換月時舊的月份滑走、新的月份滑進來的時間;放手後回到原位也用這個時間。
+  static const monthSlide = Duration(milliseconds: 220);
+
   /// 開 App 或從背景回來時比對雲端版本,一分鐘內不重複(第 4 節)。
   static const syncMinInterval = Duration(minutes: 1);
 

@@ -36,3 +36,11 @@ Set<Day> allergyMarkedDays(Iterable<FeedRecord> records) => {
         else if (r.allergy == Allergy.nextDay)
           r.day.addDays(1),
     };
+
+/// 月曆上要標淡黃色的日子:有紀錄填了腹瀉或嘔吐的那一天(App 1.0.0 起)。
+/// 同一天也在 allergyMarkedDays 裡時改標淡紫色(SPEC 第 14 節)。只是把紀錄標出來,不是判斷。
+Set<Day> digestiveMarkedDays(Iterable<FeedRecord> records) => {
+      for (final r in records)
+        if (r.digestive != null && (r.digestive!.hasDiarrhea || r.digestive!.hasVomiting)) r.day,
+    };
+

@@ -11,6 +11,9 @@ enum AllergyLevel { stable, risk, allergic }
 
 enum PreferenceLevel { reject, accept, like }
 
+/// 腹瀉、嘔吐各自的結果。只有兩個等級。
+enum DigestiveLevel { normal, occurred }
+
 /// 過敏:只計算有填「過敏狀況」的紀錄。分數:沒有 0、隔天 0.3、當天 1。
 /// 平均 0~0.2 → 穩定;>0.2~0.7 → 風險;>0.7~1 → 過敏。
 /// 最低標示:任一筆當天 → 至少風險;≥2 筆當天 → 過敏;≥2 筆隔天 → 至少風險(只有 1 筆隔天只依平均)。
@@ -59,4 +62,23 @@ PreferenceLevel? judgePreference(Iterable<FeedRecord> records, {required Day tod
   if (5 * sum < -n) return PreferenceLevel.reject;
   if (5 * sum < n) return PreferenceLevel.accept;
   return PreferenceLevel.like;
+}
+
+/// 腹瀉與嘔吐(App 1.0.0 起):各自算。只計算有填「腹瀉或嘔吐」的紀錄;
+/// 有發生 1 分、沒有 0 分(選「正常」兩個都是 0 分)。
+/// 平均 0~0.4 → 正常;>0.4~1 → 有發生(剛好 0.4 算正常)。只看平均,
+/// 不像過敏有「出現過就至少一級」的規則。有填的不到 3 筆、而且從沒發生過 → 紀錄不足。
+({DigestiveLevel? diarrhea, DigestiveLevel? vomiting}) judgeDigestive(Iterable<FeedRecord> records) {
+  final marked = records.where((r) => r.digestive != null).toList();
+  DigestiveLevel? judge(int occurred) {
+    final n = marked.length;
+    if (n == 0 || (n < 3 && occurred == 0)) return null;
+    // 平均 = occurred / n;和 0.4 比較改成整數:5·occurred ≤ 2n。
+    return 5 * occurred <= 2 * n ? DigestiveLevel.normal : DigestiveLevel.occurred;
+  }
+
+  return (
+    diarrhea: judge(marked.where((r) => r.digestive!.hasDiarrhea).length),
+    vomiting: judge(marked.where((r) => r.digestive!.hasVomiting).length),
+  );
 }

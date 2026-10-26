@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:material_symbols_icons/symbols.dart';
 
 import '../../domain/judgement.dart';
+import '../../domain/record.dart';
 import '../theme.dart';
 
 /// 免責小字(texts/DISCLAIMERS_DRAFT.md 第一節)。月曆頁因版面空間不放,其他頁面都放;
@@ -98,6 +99,42 @@ class PreferenceIcon extends StatelessWidget {
       message: '用食反應：${label(l)}\n${explain(l)}\n\n$_tail',
       child: Semantics(
         label: '用食反應${label(l)}',
+        child: Padding(padding: const EdgeInsets.all(4), child: Icon(icon, fill: 1, color: color, size: size)),
+      ),
+    );
+  }
+}
+
+/// 腹瀉或嘔吐的圖示(頁籤 4)。只有兩個等級:正常、有發生。「紀錄不足」不放圖示、位置留空。
+enum DigestiveKind { diarrhea, vomiting }
+
+class DigestiveIcon extends StatelessWidget {
+  const DigestiveIcon(this.kind, this.level, {super.key, this.size = 26});
+
+  final DigestiveKind kind;
+  final DigestiveLevel? level;
+  final double size;
+
+  String get _name => kind == DigestiveKind.diarrhea ? '腹瀉' : '嘔吐';
+
+  String label(DigestiveLevel l) => l == DigestiveLevel.normal ? '正常' : _name;
+
+  String explain(DigestiveLevel l) => l == DigestiveLevel.normal
+      ? '目前的紀錄裡，吃這個食材之後大多沒有$_name。這不代表這個食材不會造成$_name。'
+      : '紀錄裡吃這個食材之後常出現$_name，請留意寶寶的狀況，有疑慮請諮詢醫師。';
+
+  @override
+  Widget build(BuildContext context) {
+    final l = level;
+    if (l == null) return SizedBox(width: size + 8, height: size + 8);
+    final c = context.colors;
+    final (icon, color) = l == DigestiveLevel.normal
+        ? (Symbols.check_circle_rounded, c.ok)
+        : (kind == DigestiveKind.diarrhea ? Symbols.water_drop_rounded : Symbols.sick_rounded, c.warn);
+    return InfoPopover(
+      message: '$_name：${label(l)}\n${explain(l)}\n\n$_tail',
+      child: Semantics(
+        label: '$_name${label(l)}',
         child: Padding(padding: const EdgeInsets.all(4), child: Icon(icon, fill: 1, color: color, size: size)),
       ),
     );
@@ -244,40 +281,92 @@ class ChoiceChips<T> extends StatelessWidget {
   final bool readOnly;
 
   @override
+  Widget build(BuildContext context) => Wrap(spacing: 8, runSpacing: 8, children: [
+        for (final o in options)
+          SelectChip(
+            label: label(o),
+            selected: o == value,
+            readOnly: readOnly,
+            onTap: () => onChanged(o == value ? null : o),
+          ),
+      ]);
+}
+
+/// 「腹瀉或嘔吐」的選項(SPEC 第 14 節):正常／腹瀉／嘔吐。
+/// 選了「正常」時另外兩個點了沒反應;選了腹瀉或嘔吐時「正常」點了沒反應;腹瀉、嘔吐可以同時選。
+/// 再點一次已選的就取消;全部取消 = 沒填。
+class DigestiveChips extends StatelessWidget {
+  const DigestiveChips({super.key, required this.value, required this.onChanged, this.readOnly = false});
+
+  final Digestive? value;
+  final ValueChanged<Digestive?> onChanged;
+  final bool readOnly;
+
+  @override
+  Widget build(BuildContext context) {
+    final v = value;
+    final normal = v == Digestive.normal;
+    final diarrhea = v?.hasDiarrhea ?? false;
+    final vomiting = v?.hasVomiting ?? false;
+    return Wrap(spacing: 8, runSpacing: 8, children: [
+      SelectChip(
+        label: '正常',
+        selected: normal,
+        readOnly: readOnly,
+        onTap: diarrhea || vomiting ? null : () => onChanged(normal ? null : Digestive.normal),
+      ),
+      SelectChip(
+        label: '腹瀉',
+        selected: diarrhea,
+        readOnly: readOnly,
+        onTap: normal ? null : () => onChanged(Digestive.fromFlags(diarrhea: !diarrhea, vomiting: vomiting)),
+      ),
+      SelectChip(
+        label: '嘔吐',
+        selected: vomiting,
+        readOnly: readOnly,
+        onTap: normal ? null : () => onChanged(Digestive.fromFlags(diarrhea: diarrhea, vomiting: !vomiting)),
+      ),
+    ]);
+  }
+}
+
+/// 選項膠囊。onTap 是 null 時點了沒反應(外觀不變)。
+class SelectChip extends StatelessWidget {
+  const SelectChip({super.key, required this.label, required this.selected, required this.onTap, this.readOnly = false});
+
+  final String label;
+  final bool selected;
+  final VoidCallback? onTap;
+
+  /// 只能看:不能點,字與選中的框線都用灰色,看起來是鎖住的。
+  final bool readOnly;
+
+  @override
   Widget build(BuildContext context) {
     final c = context.colors;
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        for (final o in options)
-          Builder(builder: (context) {
-            final selected = o == value;
-            final mark = readOnly ? c.muted : c.accent;
-            return Material(
-              color: selected && !readOnly ? c.accentSoft : c.surface2,
-              shape: StadiumBorder(side: BorderSide(color: selected ? mark : Colors.transparent, width: 1.5)),
-              child: InkWell(
-                customBorder: const StadiumBorder(),
-                onTap: readOnly ? null : () => onChanged(selected ? null : o),
-                child: ConstrainedBox(
-                  // 觸控目標至少 48 dp(SPEC 第 1 節;test/ui/layout/ 會檢查)。
-                  constraints: const BoxConstraints(minHeight: 48),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      if (selected) ...[Icon(Icons.check_rounded, size: 18, color: mark), const SizedBox(width: 4)],
-                      Text(label(o),
-                          style: readOnly
-                              ? Theme.of(context).textTheme.labelMedium!.copyWith(color: c.muted)
-                              : Theme.of(context).textTheme.labelMedium),
-                    ]),
-                  ),
-                ),
-              ),
-            );
-          }),
-      ],
+    final mark = readOnly ? c.muted : c.accent;
+    return Material(
+      color: selected && !readOnly ? c.accentSoft : c.surface2,
+      shape: StadiumBorder(side: BorderSide(color: selected ? mark : Colors.transparent, width: 1.5)),
+      child: InkWell(
+        customBorder: const StadiumBorder(),
+        onTap: readOnly ? null : onTap,
+        child: ConstrainedBox(
+          // 觸控目標至少 48 dp(SPEC 第 1 節;test/ui/layout/ 會檢查)。
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              if (selected) ...[Icon(Icons.check_rounded, size: 18, color: mark), const SizedBox(width: 4)],
+              Text(label,
+                  style: readOnly
+                      ? Theme.of(context).textTheme.labelMedium!.copyWith(color: c.muted)
+                      : Theme.of(context).textTheme.labelMedium),
+            ]),
+          ),
+        ),
+      ),
     );
   }
 }

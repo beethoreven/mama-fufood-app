@@ -93,7 +93,7 @@ Future<Services> seededServices({bool policyAccepted = true, String theme = 'dar
   await store.addBaby('二寶');
   await store.setSetting(Keys.currentBaby, '${baby.seq}');
   Future<void> add(int day, int hour, int minute, int food, int prepared, int eaten,
-      {int month = 10, Allergy? allergy = Allergy.none, Reaction? reaction = Reaction.like, String note = ''}) {
+      {int month = 10, Allergy? allergy = Allergy.none, Reaction? reaction = Reaction.like, Digestive? digestive, String note = ''}) {
     return store.saveRecord(
       FeedRecord(
         id: newId(),
@@ -107,6 +107,7 @@ Future<Services> seededServices({bool policyAccepted = true, String theme = 'dar
         eatenUnitId: 1,
         allergy: allergy,
         reaction: reaction,
+        digestive: digestive,
         note: note,
         photoIds: const [],
         createdAtMs: 0,
@@ -127,15 +128,15 @@ Future<Services> seededServices({bool policyAccepted = true, String theme = 'dar
   await add(31, 15, 0, 17, 1500, 500, month: 8, reaction: Reaction.reject);
   await add(31, 18, 0, 2, 3000, 3000, month: 8);
   await add(2, 9, 0, 1, 3000, 2550);
-  await add(2, 17, 30, 8, 2000, 1500, reaction: Reaction.accept);
-  await add(9, 10, 0, 10, 2000, 1800);
+  await add(2, 17, 30, 8, 2000, 1500, reaction: Reaction.accept, digestive: Digestive.normal);
+  await add(9, 10, 0, 10, 2000, 1800, digestive: Digestive.vomiting);
   await add(16, 9, 0, 1, 3000, 3000);
-  await add(16, 12, 0, 32, 2500, 1000, allergy: Allergy.nextDay, reaction: Reaction.reject);
-  await add(16, 18, 0, 8, 2000, 2000);
-  await add(23, 8, 0, 8, 3000, 2550);
+  await add(16, 12, 0, 32, 2500, 1000, allergy: Allergy.nextDay, reaction: Reaction.reject, digestive: Digestive.diarrhea);
+  await add(16, 18, 0, 8, 2000, 2000, digestive: Digestive.both);
+  await add(23, 8, 0, 8, 3000, 2550, digestive: Digestive.normal);
   await add(23, 11, 0, 20, 1500, 500,
       allergy: Allergy.sameDay, reaction: Reaction.reject, note: '嘴巴周圍有點紅，半小時後消退。下次少一點再試。');
-  await add(23, 15, 0, 32, 2000, 1200, reaction: Reaction.accept);
+  await add(23, 15, 0, 32, 2000, 1200, reaction: Reaction.accept, digestive: Digestive.diarrhea);
   await add(23, 18, 30, 1, 3000, 2800);
   return services;
 }
