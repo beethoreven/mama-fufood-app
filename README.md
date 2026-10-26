@@ -241,6 +241,8 @@ flutter test test/ui/layout --dart-define=MFF_SHOTS=true --update-goldens
 
 正式版要填後端網址與 Google 用戶端 ID,簽署金鑰的 SHA-1 也要登記到 Google Cloud,所以完整的上線步驟集中寫在 meta repo [`mama-fufood`](https://github.com/beethoreven/mama-fufood) README 的「上線 SOP」,照那份的順序做。
 
+正式版(`assembleRelease`、`bundleRelease`)打包完,`android/app/build.gradle.kts` 會另外複製一份檔名帶版本號的檔案:`build/app/outputs/flutter-apk/mama-fufood-<版本>.apk`、`build/app/outputs/bundle/release/mama-fufood-<版本>.aab`,版本取自 `pubspec.yaml`。Flutter 的指令會去找 `app-release.apk`,所以原檔名保留、另外複製,不是直接改名。
+
 只想在自己的模擬器上試 release 版(不裝到別人手機)時,不需要正式的金鑰:
 
 ```bash
@@ -518,6 +520,8 @@ flutter test test/ui/layout --dart-define=MFF_SHOTS=true --update-goldens
 ## Part C. Build a Release and Install It on a Phone
 
 A release build needs the backend URL and the Google client ID, and the signing key's SHA-1 must be registered in Google Cloud, so the complete go-live steps live in the "Setup Guide" of the meta repo [`mama-fufood`](https://github.com/beethoreven/mama-fufood) README — follow that order.
+
+After a release build (`assembleRelease`, `bundleRelease`), `android/app/build.gradle.kts` also copies the output to a file whose name carries the version: `build/app/outputs/flutter-apk/mama-fufood-<version>.apk` and `build/app/outputs/bundle/release/mama-fufood-<version>.aab`, with the version taken from `pubspec.yaml`. Flutter's tooling looks for `app-release.apk`, so the original name stays and a copy is made instead of renaming it.
 
 To try a release build on your own emulator only (not on anyone else's phone), no real key is needed:
 

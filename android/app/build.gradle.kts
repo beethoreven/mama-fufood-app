@@ -61,7 +61,25 @@ android {
     }
 }
 
+// 正式版打包完,另外放一份檔名帶版本號的(例如 mama-fufood-1.1.0.apk),不同版本的安裝檔才分得清楚。
+// Flutter 的指令會去找 app-release.apk,所以原檔保留,另外複製一份。
+val versionedName = "mama-fufood-${flutter.versionName}"
+val versionedCopies = mapOf(
+    "assembleRelease" to ("outputs/apk/release/app-release.apk" to "outputs/flutter-apk/$versionedName.apk"),
+    "bundleRelease" to ("outputs/bundle/release/app-release.aab" to "outputs/bundle/release/$versionedName.aab"),
+)
+
 tasks.configureEach {
+    val copy = versionedCopies[name]
+    if (copy != null) {
+        doLast {
+            val dir = layout.buildDirectory.get().asFile
+            val target = dir.resolve(copy.second)
+            target.parentFile.mkdirs()
+            dir.resolve(copy.first).copyTo(target, overwrite = true)
+            logger.lifecycle("帶版本號的檔案:$target")
+        }
+    }
     if (name == "assembleRelease" || name == "bundleRelease") {
         doFirst {
             if (!hasReleaseKey && System.getenv("MFF_ALLOW_DEBUG_SIGNING") != "1") {
