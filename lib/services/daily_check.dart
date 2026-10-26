@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 
 import '../core/constants.dart';
-import '../core/env.dart';
 import '../core/log.dart';
 import '../core/time.dart';
 import '../data/catalog_source.dart';
@@ -66,9 +65,12 @@ class DailyCheckService extends ChangeNotifier {
 
   /// 開 App 或回到前景時呼叫。
   Future<void> maybeRun() async {
-    if (!Env.backendConfigured || !auth.signedIn) return;
+    if (!api.configured || !auth.signedIn) return;
     final today = '${TimeRules.taipeiToday()}';
-    if (await store.getSetting(CheckKeys.lastOkDay) == today) return;
+    // 正在被強制更新擋住時,每次開 App 都重新檢查(不受「一天一次」限制):後台可能已經調低門檻,
+    // 不能讓使用者被擋到隔天。每天的次數上限照樣由後端管。
+    final forced = await forceUpdate() != null;
+    if (!forced && await store.getSetting(CheckKeys.lastOkDay) == today) return;
     if (await store.getSetting(CheckKeys.failDay) == today) {
       final count = int.tryParse(await store.getSetting(CheckKeys.failCount) ?? '') ?? 0;
       final at = int.tryParse(await store.getSetting(CheckKeys.failAt) ?? '') ?? 0;

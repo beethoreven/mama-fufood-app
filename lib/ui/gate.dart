@@ -167,15 +167,53 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
   }
 }
 
-class _ForceUpdatePage extends StatelessWidget {
+/// 強制更新畫面。
+///
+/// 被擋住時主畫面不會載入,所以這裡自己準備登入狀態並重新檢查一次:後台調低門檻之後,
+/// 使用者不用等到隔天、也不用重裝就能繼續用。也可以手動按「重新檢查」。
+class _ForceUpdatePage extends ConsumerStatefulWidget {
   const _ForceUpdatePage({required this.reason, required this.url});
 
   final String reason;
   final String url;
 
   @override
+  ConsumerState<_ForceUpdatePage> createState() => _ForceUpdatePageState();
+}
+
+class _ForceUpdatePageState extends ConsumerState<_ForceUpdatePage> {
+  bool _checking = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final services = ref.read(servicesProvider);
+      await services.auth.init();
+      await services.check.maybeRun();
+    });
+  }
+
+  Future<void> _recheck() async {
+    final services = ref.read(servicesProvider);
+    if (!await ensureSignedIn(context, services, '重新檢查版本')) return;
+    setState(() => _checking = true);
+    try {
+      final message = await services.check.run();
+      final stillForced = await services.check.forceUpdate() != null;
+      if (mounted && stillForced) toast(context, '還是需要更新（$message）');
+    } catch (_) {
+      if (mounted) toast(context, '檢查失敗，請稍後再試');
+    } finally {
+      if (mounted) setState(() => _checking = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
+    final reason = widget.reason;
+    final url = widget.url;
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -192,6 +230,14 @@ class _ForceUpdatePage extends StatelessWidget {
               ],
               const SizedBox(height: 16),
               Text(url.isEmpty ? '請向提供 App 的人取得新版本。' : '新版本：$url', style: t.bodyMedium),
+              const SizedBox(height: 24),
+              OutlinedButton.icon(
+                onPressed: _checking ? null : _recheck,
+                icon: _checking
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.refresh_rounded),
+                label: const Text('重新檢查'),
+              ),
             ]),
           ),
         ),

@@ -27,16 +27,22 @@ class ApiError implements Exception {
 
 /// 呼叫後端。每一支都帶 App 的通行證(見 AuthService.backendToken;登入時用 Google ID Token 換來的)。
 class ApiClient {
-  ApiClient(this.auth, {http.Client? client}) : _http = client ?? http.Client();
+  /// baseUrl 只給測試用;App 一律用建置時帶入的 Env.apiBase。
+  ApiClient(this.auth, {http.Client? client, String? baseUrl})
+      : _http = client ?? http.Client(),
+        _base = baseUrl ?? Env.apiBase;
 
   final AuthService auth;
   final http.Client _http;
+  final String _base;
+
+  bool get configured => _base.isNotEmpty;
   static const _timeout = Duration(seconds: 30);
 
-  Uri _url(String path) => Uri.parse('${Env.apiBase}$path');
+  Uri _url(String path) => Uri.parse('$_base$path');
 
   Future<Map<String, dynamic>> _post(String path, Object body, {bool gzipBody = false, bool retried = false}) async {
-    if (!Env.backendConfigured) throw const ApiError(0, 'not_configured', '這個版本還沒設定後端網址');
+    if (!configured) throw const ApiError(0, 'not_configured', '這個版本還沒設定後端網址');
     final token = await auth.backendToken();
     final raw = utf8.encode(jsonEncode(body));
     final headers = {
@@ -76,7 +82,7 @@ class ApiClient {
 
   /// 登入時呼叫一次:用 Google ID Token 換 App 的通行證。
   Future<({String token, int expiresAt})> createSession(String idToken) async {
-    if (!Env.backendConfigured) throw const ApiError(0, 'not_configured', '這個版本還沒設定後端網址');
+    if (!configured) throw const ApiError(0, 'not_configured', '這個版本還沒設定後端網址');
     http.Response resp;
     try {
       resp = await _http
