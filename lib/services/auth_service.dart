@@ -42,6 +42,15 @@ class DriveNotAuthorized implements Exception {
   String toString() => '需要雲端硬碟的權限';
 }
 
+/// 登入狀態。
+///
+/// - signedOut:沒有記住任何帳號。
+/// - signedIn:記住了帳號,而且能拿到後端的通行證(手上的還有效,或這次登入的 ID Token 還能換一張)。
+/// - sessionExpired:記住了帳號(雲端硬碟照常能用),但通行證已經失效、也沒有能換新的 ID Token,
+///   要使用者重新按一次登入,後端的功能(每日檢查、意見回饋)才能用。
+///   例如很久沒開 App 讓通行證過期,或後端拒絕了這張通行證。
+enum AuthState { signedOut, signedIn, sessionExpired }
+
 /// 換通行證:拿 Google 的 ID Token 跟後端換 App 的通行證(見 ApiClient.createSession)。
 typedef SessionExchange = Future<({String token, int expiresAt})> Function(String idToken);
 
@@ -68,6 +77,7 @@ class AuthService extends ChangeNotifier {
   final GoogleSignIn _signIn;
 
   /// 換通行證的方法,建立服務時接上(ApiClient 也要用 AuthService,所以不能在建構時給)。
+  /// 沒有設定後端的版本是 null,這時不會有「登入已過期」。
   SessionExchange? exchange;
 
   SignedInUser? _user;
@@ -85,7 +95,26 @@ class AuthService extends ChangeNotifier {
 
   SignedInUser? get user => _user;
 
+  /// 記住了帳號(雲端硬碟用這個判斷)。後端的功能要看 [state]。
   bool get signedIn => _user != null;
+
+  AuthState get state {
+    if (_user == null) return AuthState.signedOut;
+    if (exchange == null || _validAppToken != null || _usableIdToken != null) return AuthState.signedIn;
+    return AuthState.sessionExpired;
+  }
+
+  /// 手上還沒過期的通行證。
+  String? get _validAppToken {
+    final token = _appToken, expiry = _appTokenExpiry;
+    return token != null && expiry != null && expiry.isAfter(TimeRules.now().toUtc()) ? token : null;
+  }
+
+  /// 這次開 App 按登入拿到、還沒過期的 Google ID Token。
+  String? get _usableIdToken {
+    final token = _idToken, expiry = _idTokenExpiry;
+    return token != null && (expiry == null || expiry.isAfter(TimeRules.now().toUtc())) ? token : null;
+  }
 
   /// 開 App 時呼叫:讀回記住的帳號與通行證,並準備好 Google 登入(不跳任何畫面)。
   Future<void> init() async {
@@ -95,16 +124,18 @@ class AuthService extends ChangeNotifier {
       final raw = await _storage.read(_keyUser);
       if (raw != null) {
         final m = (jsonDecode(raw) as Map).cast<String, Object?>();
-        _setUser(SignedInUser(
+        final user = SignedInUser(
             sub: m['sub']! as String,
             email: m['email']! as String,
             name: m['name'] as String?,
-            photoUrl: m['photo'] as String?));
+            photoUrl: m['photo'] as String?);
+        // 通行證先讀回來再通知畫面:先通知的話,畫面會在讀到通行證前算出「登入已過期」。
         _appToken = await _storage.read(_keyToken);
         final exp = int.tryParse(await _storage.read(_keyTokenExpiry) ?? '');
         _appTokenExpiry = exp == null ? null : DateTime.fromMillisecondsSinceEpoch(exp * 1000, isUtc: true);
+        _setUser(user);
       }
-      AppLog.info(_user != null ? 'auth.restored' : 'auth.restore_none', {'token': _appToken != null});
+      AppLog.info(_user != null ? 'auth.restored' : 'auth.restore_none', {'token': _appToken != null, 'state': state.name});
     } catch (e, st) {
       AppLog.error('auth.restore_failed', e, st);
     }
@@ -185,28 +216,36 @@ class AuthService extends ChangeNotifier {
 
   /// 用這次登入拿到的 ID Token 換通行證。ID Token 已經過期就沒辦法換,要使用者重新登入。
   Future<String> _exchange() async {
-    final idToken = _idToken;
-    final expiry = _idTokenExpiry;
+    final idToken = _usableIdToken;
     final fn = exchange;
-    if (idToken == null || fn == null || (expiry != null && !expiry.isAfter(TimeRules.now().toUtc()))) {
-      throw const NotSignedIn();
-    }
+    if (idToken == null || fn == null) throw const NotSignedIn();
     final result = await fn(idToken);
     await _saveAppToken(result.token, result.expiresAt);
     AppLog.info('auth.session_created');
     return result.token;
   }
 
-  /// 給後端的通行證。手上沒有(或快過期)就用這次登入的 ID Token 換一張;換不到就丟 NotSignedIn,
-  /// 呼叫端請使用者重新登入。**不會**自己跳任何畫面。
+  /// 給後端的通行證。手上沒有(或快過期)就用這次登入的 ID Token 換一張;快過期但換不到時先用手上的。
+  /// 完全拿不到就丟 NotSignedIn(這時 [state] 是 sessionExpired),呼叫端請使用者重新登入。
+  /// **不會**自己跳任何畫面。
   Future<String> backendToken() async {
     if (_user == null) throw const NotSignedIn();
-    final token = _appToken;
+    final current = _validAppToken;
     final expiry = _appTokenExpiry;
-    if (token != null && expiry != null && expiry.isAfter(TimeRules.now().toUtc().add(const Duration(days: 1)))) {
-      return token;
+    if (current != null && expiry!.isAfter(TimeRules.now().toUtc().add(const Duration(days: 1)))) return current;
+    if (_usableIdToken == null) {
+      if (current != null) return current;
+      AppLog.warn('auth.session_expired');
+      notifyListeners();
+      throw const NotSignedIn();
     }
-    return _exchange();
+    try {
+      return await _exchange();
+    } catch (_) {
+      // 換新的失敗(例如連不上後端),手上的還沒過期就先用。
+      if (current != null) return current;
+      rethrow;
+    }
   }
 
   /// 後端在每日檢查的回應裡附了一張新的通行證(舊的發出一段時間了):換上新的。
@@ -217,7 +256,10 @@ class AuthService extends ChangeNotifier {
   }
 
   /// 後端回 401(通行證無效或過期):丟掉,下次 backendToken() 會試著重換,換不到就要重新登入。
-  Future<void> invalidateBackendToken() => _saveAppToken(null, null);
+  Future<void> invalidateBackendToken() async {
+    await _saveAppToken(null, null);
+    notifyListeners();
+  }
 
   AuthorizationRequestDetails _driveRequest(bool prompt) => AuthorizationRequestDetails(
       scopes: DriveScopes.all, userId: _user?.sub, email: _user?.email, promptIfUnauthorized: prompt);

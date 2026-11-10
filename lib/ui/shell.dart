@@ -64,6 +64,15 @@ final authUserProvider = Provider<SignedInUser?>((ref) {
   return auth.user;
 });
 
+/// 登入狀態(含「登入已過期」);和 authUserProvider 一樣跟著 AuthService 的通知更新。
+final authStateProvider = Provider<AuthState>((ref) {
+  final auth = ref.watch(servicesProvider).auth;
+  void listener() => ref.invalidateSelf();
+  auth.addListener(listener);
+  ref.onDispose(() => auth.removeListener(listener));
+  return auth.state;
+});
+
 /// 主畫面:頂部列與底部頁籤列在所有頁面與彈出介面下都固定不動(SPEC 第 6 節)。
 /// 進入更多選單的子頁面時,頂部列左側換成返回箭頭加頁面標題,底部頁籤維持進入前亮著的那一個。
 class MainShell extends ConsumerWidget {
@@ -286,14 +295,17 @@ class _AccountButton extends ConsumerWidget {
         onPressed: () => signInFlow(context, ref),
       );
     }
+    // 登入已過期:頭像加一個提醒的小點,點開帳號選單可以重新登入。
+    final expired = ref.watch(authStateProvider) == AuthState.sessionExpired;
+    final avatar = CircleAvatar(
+      radius: 15,
+      backgroundColor: c.accentSoft,
+      foregroundImage: u.photoUrl == null ? null : NetworkImage(u.photoUrl!),
+      child: Text(u.email.characters.first.toUpperCase(), style: TextStyle(color: c.text, fontSize: 14)),
+    );
     return IconButton(
-      tooltip: u.email,
-      icon: CircleAvatar(
-        radius: 15,
-        backgroundColor: c.accentSoft,
-        foregroundImage: u.photoUrl == null ? null : NetworkImage(u.photoUrl!),
-        child: Text(u.email.characters.first.toUpperCase(), style: TextStyle(color: c.text, fontSize: 14)),
-      ),
+      tooltip: expired ? '登入已過期，請重新登入' : u.email,
+      icon: expired ? Badge(backgroundColor: c.warn, child: avatar) : avatar,
       onPressed: () => showAccountSheet(context, ref, u),
     );
   }
@@ -318,12 +330,20 @@ String _signInMessage(Object e) {
 
 Future<void> showAccountSheet(BuildContext context, WidgetRef ref, SignedInUser u) async {
   final services = ref.read(servicesProvider);
+  final expired = services.auth.state == AuthState.sessionExpired;
   final action = await showModalBottomSheet<String>(
     context: context,
     showDragHandle: true,
     builder: (ctx) => SafeArea(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         ListTile(leading: const Icon(Icons.account_circle_rounded), title: Text(u.name ?? u.email), subtitle: Text(u.email)),
+        if (expired)
+          ListTile(
+            leading: Icon(Icons.login_rounded, color: ctx.colors.warn),
+            title: const Text('重新登入'),
+            subtitle: const Text('登入已過期。雲端同步照常進行，但要重新登入才能檢查公用資料的更新、送出意見回饋。'),
+            onTap: () => Navigator.pop(ctx, 'relogin'),
+          ),
         ListTile(
           leading: const Icon(Icons.logout_rounded),
           title: const Text('登出'),
@@ -332,6 +352,8 @@ Future<void> showAccountSheet(BuildContext context, WidgetRef ref, SignedInUser 
       ]),
     ),
   );
-  if (action != 'logout' || !context.mounted) return;
+  if (!context.mounted) return;
+  if (action == 'relogin') return signInFlow(context, ref);
+  if (action != 'logout') return;
   await signOutFlow(context, services);
 }

@@ -65,14 +65,19 @@ Future<void> signOutFlow(BuildContext context, Services services) async {
 }
 
 /// 確保已登入。沒登入就先問要不要登入(SPEC 第 4 節:開啟任何雲端功能時,若未登入,先跳提醒並可跳轉登入)。
-Future<bool> ensureSignedIn(BuildContext context, Services services, String why) async {
-  if (services.auth.signedIn) return true;
-  final go = await confirm(context, title: '需要登入', message: '$why需要先用 Google 帳號登入。', ok: '登入');
+/// backend = true:這個操作要連後端(每日檢查、意見回饋),登入已過期時也要先重新登入。
+Future<bool> ensureSignedIn(BuildContext context, Services services, String why, {bool backend = false}) async {
+  final auth = services.auth;
+  final expired = backend && auth.state == AuthState.sessionExpired;
+  if (auth.signedIn && !expired) return true;
+  final go = expired
+      ? await confirm(context, title: '登入已過期', message: '$why需要重新登入 Google 帳號。', ok: '重新登入')
+      : await confirm(context, title: '需要登入', message: '$why需要先用 Google 帳號登入。', ok: '登入');
   if (!go) return false;
   try {
-    await services.auth.signIn();
+    await auth.signIn();
     if (context.mounted) await afterSignIn(context, services);
-    return services.auth.signedIn;
+    return backend ? auth.state == AuthState.signedIn : auth.signedIn;
   } catch (e) {
     if (context.mounted) toast(context, '登入沒有成功，請稍後再試');
     return false;

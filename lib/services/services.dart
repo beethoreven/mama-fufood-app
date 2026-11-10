@@ -67,7 +67,7 @@ class Services {
   }
 
   void _wire() {
-    auth.exchange = api.createSession;
+    auth.exchange = api.configured ? api.createSession : null;
     check = DailyCheckService(store: store, auth: auth, api: api, appVersion: () => appVersion);
     photos = PhotoService(
       store,

@@ -81,7 +81,7 @@ class _FeedbackPageState extends ConsumerState<FeedbackPage> {
 
   Future<void> _send() async {
     final services = ref.read(servicesProvider);
-    if (!await ensureSignedIn(context, services, '送出意見回饋')) return;
+    if (!await ensureSignedIn(context, services, '送出意見回饋', backend: true)) return;
     setState(() => _busy = true);
     try {
       final draft = await services.feedback.prepare(_kind, _text.text);

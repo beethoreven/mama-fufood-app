@@ -188,7 +188,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           onTap: _checking || !Env.backendConfigured
               ? null
               : () async {
-                  if (!await ensureSignedIn(context, services, '檢查公用資料的更新')) return;
+                  if (!await ensureSignedIn(context, services, '檢查公用資料的更新', backend: true)) return;
                   setState(() => _checking = true);
                   final message = await services.check.run();
                   if (!mounted) return;

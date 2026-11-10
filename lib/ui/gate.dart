@@ -176,7 +176,7 @@ class _ForceUpdatePageState extends ConsumerState<_ForceUpdatePage> {
 
   Future<void> _recheck() async {
     final services = ref.read(servicesProvider);
-    if (!await ensureSignedIn(context, services, '重新檢查版本')) return;
+    if (!await ensureSignedIn(context, services, '重新檢查版本', backend: true)) return;
     setState(() => _checking = true);
     try {
       final message = await services.check.run();

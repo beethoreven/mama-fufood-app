@@ -65,7 +65,8 @@ class DailyCheckService extends ChangeNotifier {
 
   /// 開 App 或回到前景時呼叫。
   Future<void> maybeRun() async {
-    if (!api.configured || !auth.signedIn) return;
+    // 登入已過期時不自動檢查(一定失敗,還會用掉重試次數);重新登入之後就會恢復。
+    if (!api.configured || auth.state != AuthState.signedIn) return;
     final today = '${TimeRules.taipeiToday()}';
     // 正在被強制更新擋住時,每次開 App 都重新檢查(不受「一天一次」限制):後台可能已經調低門檻,
     // 不能讓使用者被擋到隔天。每天的次數上限照樣由後端管。
@@ -146,7 +147,7 @@ class DailyCheckService extends ChangeNotifier {
       await _noteFailure(today);
       return e.isNotReady ? '暫時無法檢查，請稍後再試' : e.message;
     } on NotSignedIn {
-      return '請先用 Google 帳號登入，才能更新公用資料';
+      return auth.signedIn ? '登入已過期，請重新登入 Google 帳號，才能更新公用資料' : '請先用 Google 帳號登入，才能更新公用資料';
     } catch (e, st) {
       AppLog.error('check.error', e, st);
       await _noteFailure(today);

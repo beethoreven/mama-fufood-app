@@ -268,7 +268,8 @@ class FeedbackService {
         AppLog.info('feedback.expired');
         continue;
       }
-      if (!auth.signedIn || tries >= Limits.feedbackRetriesPerDay) continue;
+      // 登入已過期時先不重送(一定失敗,還會用掉今天的次數);重新登入之後會繼續。
+      if (auth.state != AuthState.signedIn || tries >= Limits.feedbackRetriesPerDay) continue;
       tries++;
       await store.setSetting(_retryDayKey, today);
       await store.setSetting(_retryCountKey, '$tries');
@@ -281,6 +282,11 @@ class FeedbackService {
           await f.delete(); // 伺服器不收的內容,重送也沒用
         }
         if (e.isDailyLimit) break;
+      } on NotSignedIn {
+        // 這時才發現通行證拿不到:這次不算,等重新登入。
+        tries--;
+        await store.setSetting(_retryCountKey, '$tries');
+        break;
       } catch (_) {
         break;
       }

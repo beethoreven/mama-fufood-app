@@ -57,4 +57,31 @@ void main() {
     await check.maybeRun();
     expect(calls, 2);
   });
+
+  test('登入已過期時不自動檢查，也不記成失敗(重新登入後才不會被重試上限擋住)', () async {
+    final store = Store(AppDb(NativeDatabase.memory()));
+    addTearDown(store.db.close);
+    await store.setSetting('auth_user', jsonEncode({'sub': 'u1', 'email': 'mom@example.com'}));
+    await store.setSetting('auth_app_token', 'mff1.x.y');
+    await store.setSetting('auth_app_token_exp', '${DateTime.now().subtract(const Duration(days: 1)).millisecondsSinceEpoch ~/ 1000}');
+    final auth = AuthService(StoreAuthStorage(store));
+    var calls = 0;
+    final api = ApiClient(auth, baseUrl: 'https://backend.test', client: MockClient((req) async {
+      calls++;
+      return http.Response('{}', 500);
+    }));
+    auth.exchange = api.createSession;
+    await auth.init();
+    expect(auth.state, AuthState.sessionExpired);
+
+    final check = DailyCheckService(store: store, auth: auth, api: api, appVersion: () => '0.1.0');
+    await check.maybeRun();
+    expect(calls, 0);
+    expect(await store.getSetting(CheckKeys.failCount), isNull);
+
+    // 手動檢查:告訴使用者要重新登入,同樣不記成失敗。
+    expect(await check.run(), contains('登入已過期'));
+    expect(calls, 0);
+    expect(await store.getSetting(CheckKeys.failCount), isNull);
+  });
 }

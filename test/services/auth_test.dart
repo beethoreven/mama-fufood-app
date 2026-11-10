@@ -105,8 +105,9 @@ void main() {
       exchanged++;
       return (token: 'mff1.new', expiresAt: DateTime.now().toUtc().add(const Duration(days: 180)).millisecondsSinceEpoch ~/ 1000);
     };
-    // 這次開 App 沒按登入,手上沒有 ID Token:換不到。
-    expect(auth.backendToken, throwsA(isA<NotSignedIn>()));
+    // 這次開 App 沒按登入,手上沒有 ID Token:換不到新的,先用手上還沒過期的那張。
+    expect(await auth.backendToken(), 'mff1.old');
+    expect(exchanged, 0);
     auth.debugSetIdToken('google-id', DateTime.now().toUtc().add(const Duration(minutes: 30)));
     expect(await auth.backendToken(), 'mff1.new');
     expect(exchanged, 1);
@@ -114,6 +115,83 @@ void main() {
 
     await auth.invalidateBackendToken();
     expect(storage.values.containsKey('auth_app_token'), isFalse);
+  });
+
+  SessionExchange neverCalled() => (_) async => fail('不該換通行證');
+
+  group('登入已過期(記住了帳號,但通行證拿不到)', () {
+    test('重開 App 時通行證已過期、手上沒有 ID Token:是「登入已過期」，不是未登入，也不請系統自動登入', () async {
+      storage.values['auth_user'] = jsonEncode({'sub': 'u1', 'email': 'mom@example.com', 'name': null, 'photo': null});
+      storage.values['auth_app_token'] = 'mff1.old';
+      storage.values['auth_app_token_exp'] = '${DateTime.now().toUtc().subtract(const Duration(days: 1)).millisecondsSinceEpoch ~/ 1000}';
+      final auth = AuthService(storage)..exchange = neverCalled();
+      final seen = <AuthState>[];
+      auth.addListener(() => seen.add(auth.state));
+      await auth.init();
+      expect(auth.state, AuthState.sessionExpired);
+      expect(seen, [AuthState.sessionExpired], reason: '通知畫面時通行證要已經讀回來,不能先通知一個不對的狀態');
+      expect(auth.signedIn, isTrue, reason: '帳號還記得,雲端硬碟照常能用');
+      expect(platform.lightweightCalls, 0);
+      await expectLater(auth.backendToken(), throwsA(isA<NotSignedIn>()));
+      expect(await auth.driveAccessToken(interactive: false), 'drive-at');
+    });
+
+    test('重開 App 時通行證還有效:直接是登入狀態，畫面只收到一次正確的通知', () async {
+      storage.values['auth_user'] = jsonEncode({'sub': 'u1', 'email': 'mom@example.com', 'name': null, 'photo': null});
+      storage.values['auth_app_token'] = 'mff1.ok';
+      storage.values['auth_app_token_exp'] = '${DateTime.now().toUtc().add(const Duration(days: 100)).millisecondsSinceEpoch ~/ 1000}';
+      final auth = AuthService(storage)..exchange = neverCalled();
+      final seen = <AuthState>[];
+      auth.addListener(() => seen.add(auth.state));
+      await auth.init();
+      expect(seen, [AuthState.signedIn]);
+    });
+
+    test('後端拒絕通行證(401):通知畫面變成「登入已過期」；重新登入拿到 ID Token 後恢復', () async {
+      final auth = await restored(token: 'mff1.a.b', expiry: DateTime.now().toUtc().add(const Duration(days: 100)));
+      auth.exchange = (_) async =>
+          (token: 'mff1.new', expiresAt: DateTime.now().toUtc().add(const Duration(days: 180)).millisecondsSinceEpoch ~/ 1000);
+      expect(auth.state, AuthState.signedIn);
+      var notified = 0;
+      auth.addListener(() => notified++);
+      await auth.invalidateBackendToken();
+      expect(auth.state, AuthState.sessionExpired);
+      expect(notified, 1);
+
+      auth.debugSetIdToken('google-id', DateTime.now().toUtc().add(const Duration(minutes: 30)));
+      expect(auth.state, AuthState.signedIn);
+      expect(await auth.backendToken(), 'mff1.new');
+    });
+
+    test('backendToken 發現拿不到通行證時通知畫面', () async {
+      final auth = await restored();
+      auth.exchange = neverCalled();
+      var notified = 0;
+      auth.addListener(() => notified++);
+      await expectLater(auth.backendToken(), throwsA(isA<NotSignedIn>()));
+      expect(notified, 1);
+    });
+
+    test('沒有設定後端的版本:沒有通行證也算登入，不會顯示登入已過期', () async {
+      final auth = await restored();
+      expect(auth.exchange, isNull);
+      expect(auth.state, AuthState.signedIn);
+    });
+
+    test('換新通行證失敗(連不上後端)時，手上還沒過期的先繼續用', () async {
+      final auth = await restored(token: 'mff1.old', expiry: DateTime.now().toUtc().add(const Duration(hours: 2)));
+      auth.exchange = (_) async => throw Exception('offline');
+      auth.debugSetIdToken('google-id', DateTime.now().toUtc().add(const Duration(minutes: 30)));
+      expect(await auth.backendToken(), 'mff1.old');
+    });
+
+    test('登出後是未登入', () async {
+      final auth = await restored();
+      auth.exchange = neverCalled();
+      expect(auth.state, AuthState.sessionExpired);
+      await auth.signOut();
+      expect(auth.state, AuthState.signedOut);
+    });
   });
 
   test('每日檢查附的新通行證會換上', () async {
