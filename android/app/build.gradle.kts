@@ -33,7 +33,7 @@ android {
 
     defaultConfig {
         applicationId = "tw.com.tutorarthur.mamafufood"
-        // 最低支援 Android 11(SPEC 第 13 節):emoji 用 Unicode 13、讀取「上次結束原因」都需要。
+        // 最低支援 Android 11:emoji 用 Unicode 13、讀取「上次結束原因」都需要。
         minSdk = 30
         targetSdk = flutter.targetSdkVersion
         // 版本號與版本碼從 pubspec.yaml 帶入(版本碼 = x×1000 + y×10 + z)。

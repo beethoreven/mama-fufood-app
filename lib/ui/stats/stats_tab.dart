@@ -10,7 +10,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/wheel_picker.dart';
 
-/// 頁籤 2:統計(SPEC 第 7 節)。篩選:年必選(不可「不指定」)、月預設「不指定」、
+/// 頁籤 2:統計。篩選:年必選(不可「不指定」)、月預設「不指定」、
 /// 日鎖定直到選了月。結果只加總「食用量」。
 class StatsTab extends ConsumerStatefulWidget {
   const StatsTab({super.key});

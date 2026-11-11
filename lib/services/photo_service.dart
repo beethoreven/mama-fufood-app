@@ -27,7 +27,7 @@ class DraftPhoto {
   bool get isNew => file != null;
 }
 
-/// 照片(SPEC 第 4、13 節):
+/// 照片:
 /// - 一律重新壓縮成 JPEG:長邊 1280 像素、品質 80;先依方向資訊轉正,再移除拍攝地點等
 ///   所有附帶資訊。
 /// - 存在 files/photos/(不在 Android 自動備份的範圍)。

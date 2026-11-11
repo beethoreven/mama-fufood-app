@@ -61,7 +61,7 @@ class ImportSummary {
   final int skipped;
 }
 
-/// 匯入(SPEC 第 4 節、EXPORT_FORMAT_DRAFT.md 第 7 節的檢查順序)。
+/// 匯入。檢查有固定的順序,
 /// 任何一步不通過,整份不匯入,並說明原因。
 class ImportService {
   ImportService({required this.store, required this.photos, required this.api, required this.appVersion});
@@ -291,7 +291,7 @@ class ImportService {
       try {
         final res = await api.convert(data);
         if ((res['missing'] as List? ?? const []).isNotEmpty) {
-          // 目前沒有這種欄位;以後有了再做補資料的介面(SPEC 第 4 節)。
+          // 目前沒有這種欄位;以後有了再做補資料的介面。
           throw const ImportProblem('這個檔案缺少新版需要的資料，請更新 App 後再試。');
         }
         data = (res['data'] as Map).cast<String, Object?>();

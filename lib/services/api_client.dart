@@ -108,7 +108,7 @@ class ApiClient {
     return (token: token, expiresAt: exp);
   }
 
-  /// 每日檢查(SPEC 第 3 節第 2 項)。
+  /// 每日檢查。
   Future<Map<String, dynamic>> check({required String appVersion, required Map<String, Map<String, Object?>> datasets}) =>
       _post('/api/v1/check',
           {'app_version': appVersion, 'platform': Platform.isIOS ? 'ios' : 'android', 'datasets': datasets});

@@ -16,7 +16,7 @@ enum Allergy {
 
   static Allergy? fromCode(String? code) => code == null ? null : values.firstWhere((a) => a.code == code);
 
-  /// 畫面上的順序:沒有過敏狀況 / 當天發生過敏 / 隔天發生過敏(SPEC 第 7 節)。
+  /// 畫面上的順序:沒有過敏狀況 / 當天發生過敏 / 隔天發生過敏。
   static const display = [Allergy.none, Allergy.sameDay, Allergy.nextDay];
 }
 

@@ -30,7 +30,7 @@ class Scenario {
   final bool noBabies;
 }
 
-/// 觸控目標至少 48×48 dp(SPEC 第 1 節)。
+/// 觸控目標至少 48×48 dp。
 /// 唯一的例外:月曆一列 7 格,螢幕不到 336 dp 寬時(例如 320 dp 的小螢幕每格只有 45.7 dp),
 /// 寬度的標準放寬成「螢幕寬 ÷ 7」;格子的高度仍然要 48 dp 以上,其他元件也照樣要 48 dp。
 Size minTapTarget(Scenario s, Screen screen) => Size(s.calendarVisible ? math.min(48, screen.width / 7) : 48, 48);
@@ -52,7 +52,7 @@ const _note = '嘴巴周圍有點紅，半小時後消退。下次少一點再�
 final scenarios = <Scenario>[
   Scenario('principles', policyAccepted: false, shows: () => find.text('資料運用原則')),
   Scenario('calendar', calendarVisible: true, shows: () => find.text('🍠地瓜')),
-  // 6 列的月份(SPEC 第 11 節「月曆格子的實際尺寸驗證」):往前兩個月到 2026 年 8 月。
+  // 6 列的月份:往前兩個月到 2026 年 8 月。
   Scenario('calendar_6weeks', calendarVisible: true, go: (t) async {
     await tap(t, find.byTooltip('上個月'));
     await tap(t, find.byTooltip('上個月'));

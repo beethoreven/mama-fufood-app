@@ -5,7 +5,7 @@ import 'dart:typed_data';
 
 import 'package:cryptography/cryptography.dart';
 
-/// 匯出檔(.mff)的檔頭與加密(EXPORT_FORMAT_DRAFT.md 第 3、4 節)。
+/// 匯出檔(.mff)的檔頭與加密。
 ///
 ///     MAMAFF | 檔頭長度(4 位元組,大端序)| 檔頭 JSON | 加密的段落……
 ///

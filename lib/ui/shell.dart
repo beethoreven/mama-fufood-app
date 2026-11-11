@@ -73,7 +73,7 @@ final authStateProvider = Provider<AuthState>((ref) {
   return auth.state;
 });
 
-/// 主畫面:頂部列與底部頁籤列在所有頁面與彈出介面下都固定不動(SPEC 第 6 節)。
+/// 主畫面:頂部列與底部頁籤列在所有頁面與彈出介面下都固定不動。
 /// 進入更多選單的子頁面時,頂部列左側換成返回箭頭加頁面標題,底部頁籤維持進入前亮著的那一個。
 class MainShell extends ConsumerWidget {
   const MainShell({super.key});
@@ -272,7 +272,7 @@ class _TopBar extends ConsumerWidget implements PreferredSizeWidget {
 }
 
 /// 登入入口:頂部列右側、更多選單的左邊。沒登入是 Google 圖示,登入後換成頭像;
-/// 點頭像顯示帳號 Email 與「登出」(SPEC 第 6 節)。
+/// 點頭像顯示帳號 Email 與「登出」。
 class _AccountButton extends ConsumerWidget {
   const _AccountButton({required this.user});
 

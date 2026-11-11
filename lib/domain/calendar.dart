@@ -22,7 +22,7 @@ List<List<Day?>> monthGrid(int year, int month, {required bool weekStartsMonday}
 List<String> weekdayLabels({required bool weekStartsMonday}) =>
     weekStartsMonday ? const ['一', '二', '三', '四', '五', '六', '日'] : const ['日', '一', '二', '三', '四', '五', '六'];
 
-/// 每格最多三排,每排一筆紀錄;超過 3 筆時第三排改成「…」(SPEC 第 7 節)。
+/// 每格最多三排,每排一筆紀錄;超過 3 筆時第三排改成「…」。
 /// 回傳要顯示的紀錄數,以及要不要放「…」。
 ({int shown, bool more}) cellRows(int count) => count <= 3 ? (shown: count, more: false) : (shown: 2, more: true);
 
@@ -38,7 +38,7 @@ Set<Day> allergyMarkedDays(Iterable<FeedRecord> records) => {
     };
 
 /// 月曆上要標淡黃色的日子:有紀錄填了腹瀉或嘔吐的那一天(App 1.0.0 起)。
-/// 同一天也在 allergyMarkedDays 裡時改標淡紫色(SPEC 第 14 節)。只是把紀錄標出來,不是判斷。
+/// 同一天也在 allergyMarkedDays 裡時改標淡紫色。只是把紀錄標出來,不是判斷。
 Set<Day> digestiveMarkedDays(Iterable<FeedRecord> records) => {
       for (final r in records)
         if (r.digestive != null && (r.digestive!.hasDiarrhea || r.digestive!.hasVomiting)) r.day,

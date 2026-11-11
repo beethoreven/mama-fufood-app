@@ -5,7 +5,7 @@ import '../../domain/judgement.dart';
 import '../../domain/record.dart';
 import '../theme.dart';
 
-/// 免責小字(texts/DISCLAIMERS_DRAFT.md 第一節)。月曆頁因版面空間不放,其他頁面都放;
+/// 免責小字。月曆頁因版面空間不放,其他頁面都放;
 /// 小對話框與提示訊息不放。
 abstract final class Disclaimers {
   static const record = '本 App 僅供記錄與參考，非基於醫學知識做的判斷。任何反應請諮詢醫師。';
@@ -27,7 +27,7 @@ class DisclaimerText extends StatelessWidget {
       );
 }
 
-/// 判斷圖示(DESIGN_SYSTEM.md「判斷圖示」):不能只靠顏色,一定搭配不同的圖示和文字。
+/// 判斷圖示:不能只靠顏色,一定搭配不同的圖示和文字。
 /// 「紀錄不足」不放圖示、位置留空。
 class AllergyIcon extends StatelessWidget {
   const AllergyIcon(this.level, {super.key, this.size = 26});
@@ -143,7 +143,7 @@ class DigestiveIcon extends StatelessWidget {
 
 const _tail = '僅供記錄與參考，非基於醫學知識做的判斷；判斷方式見「判斷邏輯說明」。';
 
-/// 輕點出現說明文字,點其他地方或滑動就消失(SPEC 第 7 節)。
+/// 輕點出現說明文字,點其他地方或滑動就消失。
 class InfoPopover extends StatefulWidget {
   const InfoPopover({super.key, required this.message, required this.child});
 
@@ -292,7 +292,7 @@ class ChoiceChips<T> extends StatelessWidget {
       ]);
 }
 
-/// 「腹瀉或嘔吐」的選項(SPEC 第 14 節):正常／腹瀉／嘔吐。
+/// 「腹瀉或嘔吐」的選項:正常／腹瀉／嘔吐。
 /// 選了「正常」時另外兩個點了沒反應;選了腹瀉或嘔吐時「正常」點了沒反應;腹瀉、嘔吐可以同時選。
 /// 再點一次已選的就取消;全部取消 = 沒填。
 class DigestiveChips extends StatelessWidget {
@@ -353,7 +353,7 @@ class SelectChip extends StatelessWidget {
         customBorder: const StadiumBorder(),
         onTap: readOnly ? null : onTap,
         child: ConstrainedBox(
-          // 觸控目標至少 48 dp(SPEC 第 1 節;test/ui/layout/ 會檢查)。
+          // 觸控目標至少 48 dp(test/ui/layout/ 會檢查)。
           constraints: const BoxConstraints(minHeight: 48),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

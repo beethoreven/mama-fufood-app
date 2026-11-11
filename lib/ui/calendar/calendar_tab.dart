@@ -12,7 +12,7 @@ import '../theme.dart';
 import '../widgets/wheel_picker.dart';
 import 'day_list_dialog.dart';
 
-/// 頁籤 1:行事曆(SPEC 第 7 節)。月曆頁因版面空間不放免責小字。
+/// 頁籤 1:行事曆。月曆頁因版面空間不放免責小字。
 class CalendarTab extends ConsumerStatefulWidget {
   const CalendarTab({super.key});
 
@@ -262,7 +262,7 @@ class _MonthGrid extends ConsumerWidget {
   }
 }
 
-/// 月曆格子的底色(SPEC 第 14 節):過敏淡紅、腹瀉或嘔吐淡黃、同一天兩種都有淡紫。
+/// 月曆格子的底色:過敏淡紅、腹瀉或嘔吐淡黃、同一天兩種都有淡紫。
 enum _DayMark { allergy, digestive, both }
 
 class _DayCell extends StatelessWidget {

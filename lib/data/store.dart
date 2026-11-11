@@ -111,7 +111,7 @@ class Store {
 
   Future<List<Baby>> babies() => watchBabies().first;
 
-  /// 名稱最多 20 字、不可重複、最多 8 個寶寶(SPEC 第 5 節)。
+  /// 名稱最多 20 字、不可重複、最多 8 個寶寶。
   Future<String> _checkName(String raw, {int? exceptSeq}) async {
     final name = raw.trim();
     if (name.isEmpty) throw const InputProblem('請輸入寶寶名稱');
@@ -152,7 +152,7 @@ class Store {
         .write(BabiesCompanion(name: Value(name), updatedAt: Value(_now()), dirty: const Value(true)));
   }
 
-  /// 有開雲端同步時改名(SPEC 第 15 節):改名就是另一個寶寶。建立新名字的寶寶,把紀錄複製一份
+  /// 有開雲端同步時改名:改名就是另一個寶寶。建立新名字的寶寶,把紀錄複製一份
   /// (新的紀錄編號、新的照片編號,視為剛新增),原本的寶寶與紀錄都不動。
   /// 回傳新寶寶,以及每張照片的(舊照片編號, 新照片編號, 新紀錄編號),照片檔由呼叫端複製。
   /// 同步來的資料可能一天超過 10 筆,複製時不檢查每日上限(比照同步與匯入)。

@@ -28,10 +28,10 @@ class AppSettings {
 
   final Map<String, String> raw;
 
-  /// 週起始日預設星期一(SPEC 第 6 節)。
+  /// 週起始日預設星期一。
   bool get weekStartsMonday => raw[Keys.weekStart] != 'sunday';
 
-  /// 預設深色模式(SPEC 第 1 節:深夜哄睡後使用)。
+  /// 預設深色模式(深夜哄睡後使用)。
   ThemeMode get themeMode => switch (raw[Keys.theme]) {
         'light' => ThemeMode.light,
         'system' => ThemeMode.system,
@@ -83,7 +83,7 @@ final dayRecordsProvider = StreamProvider.family<List<FeedRecord>, (int, Day)>(
 final allRecordsProvider =
     StreamProvider.family<List<FeedRecord>, int>((ref, seq) => ref.watch(storeProvider).watchAll(seq));
 
-/// 只留這支手機認得食材與單位的紀錄(不認得的先不顯示,SPEC 第 4 節「不認得的資料」)。
+/// 只留這支手機認得食材與單位的紀錄(不認得的先不顯示)。
 List<FeedRecord> knownOnly(List<FeedRecord> records, Catalog catalog) => [
       for (final r in records)
         if (catalog.knows(foodId: r.foodId, preparedUnitId: r.preparedUnitId, eatenUnitId: r.eatenUnitId)) r,

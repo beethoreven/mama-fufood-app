@@ -33,7 +33,7 @@ class ExportResult {
   final int photos;
 }
 
-/// 匯出(SPEC 第 4 節、EXPORT_FORMAT_DRAFT.md):
+/// 匯出:
 /// 一個檔包含這支手機上的全部寶寶;整份加密(包含照片);存到使用者自己的雲端硬碟
 /// 「媽媽記副食品」資料夾。沒有任何紀錄也可以匯出(裡面有設定)。
 class ExportService {

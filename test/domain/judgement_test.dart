@@ -33,7 +33,7 @@ List<FeedRecord> allergies(List<Allergy?> values) => [for (final v in values) re
 void main() {
   const none = Allergy.none, next = Allergy.nextDay, same = Allergy.sameDay;
 
-  group('過敏（SPEC 第 8 節、判斷邏輯說明頁的例子）', () {
+  group('過敏（判斷邏輯說明頁的例子）', () {
     test('沒有、沒有 → 紀錄不足（不顯示圖示）', () {
       expect(judgeAllergy(allergies([none, none])), isNull);
     });

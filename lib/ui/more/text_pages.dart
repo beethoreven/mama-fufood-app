@@ -7,7 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
-/// 內建在 App 裡的文字(texts/ 的草案,用 tools/sync_texts.py 同步進 assets/texts/)。
+/// 內建在 App 裡的文字(assets/texts/)。
 class MarkdownAsset extends StatefulWidget {
   const MarkdownAsset({super.key, required this.asset, this.header, this.footer});
 

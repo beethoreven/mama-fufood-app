@@ -2,7 +2,7 @@
     <!-- 連後端(每日檢查、意見回饋、格式轉換)與 Google 雲端硬碟。 -->
     <uses-permission
         android:name="android.permission.INTERNET"/>
-    <!-- 意見回饋的「網路類型」(SPEC 第 10 節)。 -->
+    <!-- 意見回饋的「網路類型」。 -->
     <uses-permission
         android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <!-- 選照片用系統的照片挑選器,不要求讀取整個相簿的權限。 -->

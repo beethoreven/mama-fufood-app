@@ -21,7 +21,7 @@ import 'widgets/common.dart';
 
 /// 需要使用者互動的流程(登入後的檢查、登出、開關雲端、刪除寶寶、同步衝突)。
 
-/// 登入成功之後:換了帳號就自動關掉兩個雲端開關並提示(SPEC 第 4 節「換帳號」)。
+/// 登入成功之後:換了帳號就自動關掉兩個雲端開關並提示。
 Future<void> afterSignIn(BuildContext context, Services services) async {
   final user = services.auth.user;
   if (user == null) return;
@@ -64,7 +64,7 @@ Future<void> signOutFlow(BuildContext context, Services services) async {
   await services.auth.signOut();
 }
 
-/// 確保已登入。沒登入就先問要不要登入(SPEC 第 4 節:開啟任何雲端功能時,若未登入,先跳提醒並可跳轉登入)。
+/// 確保已登入。沒登入就先問要不要登入(開啟任何雲端功能時,若未登入,先跳提醒並可跳轉登入)。
 /// backend = true:這個操作要連後端(每日檢查、意見回饋),登入已過期時也要先重新登入。
 Future<bool> ensureSignedIn(BuildContext context, Services services, String why, {bool backend = false}) async {
   final auth = services.auth;
@@ -128,7 +128,7 @@ Future<void> setPhotoSync(BuildContext context, Services services, bool on) asyn
   services.photos.processCloud();
 }
 
-/// 改名(SPEC 第 15 節)。沒開雲端同步:直接改。有開同步:改名就是另一個寶寶,
+/// 改名。沒開雲端同步:直接改。有開同步:改名就是另一個寶寶,
 /// 另外建立新名字的寶寶、複製目前的紀錄與照片,原本的寶寶保留。
 Future<void> renameBabyFlow(BuildContext context, WidgetRef ref, Baby baby) async {
   final services = ref.read(servicesProvider);
@@ -174,7 +174,7 @@ Future<void> renameBabyFlow(BuildContext context, WidgetRef ref, Baby baby) asyn
   }
 }
 
-/// 刪除寶寶(SPEC 第 5 節):①警告通知按確定 → ②輸入「刪除{寶寶名}的紀錄」按確定 →
+/// 刪除寶寶:①警告通知按確定 → ②輸入「刪除{寶寶名}的紀錄」按確定 →
 /// ③重新登入 Google(只有該寶寶在雲端有資料時才需要,而且必須是存放這些資料的同一個帳號),
 /// 成功後執行並通知。確認視窗註明「已匯出的檔案不會被刪除」。
 Future<void> deleteBabyFlow(BuildContext context, WidgetRef ref, Baby baby) async {
@@ -259,7 +259,7 @@ Future<void> deleteBabyFlow(BuildContext context, WidgetRef ref, Baby baby) asyn
   if (context.mounted) toast(context, '已刪除「${baby.name}」的紀錄');
 }
 
-/// 同步衝突(SPEC 第 4 節):只有一筆 → 顯示差異,選保留哪一邊;多筆 → 四個選項,
+/// 同步衝突:只有一筆 → 顯示差異,選保留哪一邊;多筆 → 四個選項,
 /// 覆蓋類的選項按下前再多一層確認。
 Future<ConflictChoice> resolveConflicts(BuildContext context, Catalog? catalog, List<SyncConflict> conflicts) async {
   if (conflicts.length == 1) {
@@ -329,7 +329,7 @@ Future<ConflictChoice> resolveConflicts(BuildContext context, Catalog? catalog, 
   }
 }
 
-/// 衝突的日期(SPEC 第 15 節):手機上與雲端那份的日期都算,從舊到新,最多列 10 個。
+/// 衝突的日期:手機上與雲端那份的日期都算,從舊到新,最多列 10 個。
 String conflictDaysText(List<SyncConflict> conflicts, {int max = 10}) {
   final days = <Day>{
     for (final c in conflicts) ...[c.local.day, if (c.remote != null) c.remote!.day],

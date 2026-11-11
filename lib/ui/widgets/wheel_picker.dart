@@ -28,7 +28,7 @@ String secondsText(Duration d) {
   return s == s.roundToDouble() ? '${s.round()}' : '$s';
 }
 
-/// 捲動選單(SPEC 第 6 節):
+/// 捲動選單:
 /// - 放手、捲動停住 0.5 秒後自動套用並關閉(預設值,見 [PickerTiming])。
 ///   手指還按著時不算:放手之前不會選定;甩動時等滾輪停住才開始計時。
 /// - 自動套用前點選單外面:關閉選單、當作沒開過(維持原值,回傳 null)。
@@ -200,7 +200,7 @@ class PickerButton extends StatelessWidget {
         customBorder: const StadiumBorder(),
         onTap: enabled ? onTap : null,
         child: ConstrainedBox(
-          // 觸控目標至少 48 dp(SPEC 第 1 節;test/ui/layout/ 會檢查)。
+          // 觸控目標至少 48 dp(test/ui/layout/ 會檢查)。
           constraints: const BoxConstraints(minHeight: 48, minWidth: 64),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

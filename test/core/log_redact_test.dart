@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mama_fufood/core/log.dart';
 
-/// 送出的診斷資料(錯誤訊息、堆疊、logcat、追蹤摘要)送出前要遮蔽的個人資料與憑證(SPEC 第 10 節)。
+/// 送出的診斷資料(錯誤訊息、堆疊、logcat、追蹤摘要)送出前要遮蔽的個人資料與憑證。
 void main() {
   setUp(() {
     AppLog.babyNames = const ['小寶'];

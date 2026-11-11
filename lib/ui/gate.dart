@@ -17,7 +17,7 @@ import 'theme.dart';
 import 'widgets/common.dart';
 import '../services/feedback_service.dart';
 
-/// 決定現在要顯示什麼:資料運用原則 → 第一個寶寶 → 強制更新 → 主畫面(SPEC 第 3、5 節)。
+/// 決定現在要顯示什麼:資料運用原則 → 第一個寶寶 → 強制更新 → 主畫面。
 class AppGate extends ConsumerStatefulWidget {
   const AppGate({super.key, required this.navigatorKey});
 

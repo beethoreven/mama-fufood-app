@@ -38,7 +38,7 @@ abstract final class SyncKeys {
   static const lastError = 'sync_last_error';
 }
 
-/// 多筆衝突時的四個選項(SPEC 第 4 節);只有一筆時是「保留手機上的/保留雲端的」。
+/// 多筆衝突時的四個選項;只有一筆時是「保留手機上的/保留雲端的」。
 enum ConflictChoice { keepNewer, localWins, cloudWins, stopSync }
 
 class SyncConflict {
@@ -65,7 +65,7 @@ class _RemoteRecord {
   final bool deleted;
 }
 
-/// 雲端同步(SPEC 第 4 節「版本比對」「衝突處理」)。
+/// 雲端同步。
 ///
 /// - 雲端版本 = 基礎版本 → 沒人動過:上傳,再讀一次雲端確認;確認成功才清掉本機暫存。
 /// - 雲端版本 = 上次要寫的版本 → 上次其實傳成功:比對一致才清掉。
@@ -345,7 +345,7 @@ class SyncEngine extends ChangeNotifier {
       (_db.update(_db.records)..where((x) => x.id.equals(id))).write(
           RecordsCompanion(dirty: const Value(false), updatedAt: Value(remoteUpdatedAt), cloudUpdatedAt: Value(remoteUpdatedAt)));
 
-  /// 衝突只看內容(SPEC 第 15 節):寶寶、刪除與否、紀錄的每個欄位;不看最後修改時間。
+  /// 衝突只看內容:寶寶、刪除與否、紀錄的每個欄位;不看最後修改時間。
   static bool _sameContent(RecordRow local, FeedRecord? remote) {
     if (local.deleted || remote == null) return local.deleted && remote == null;
     String key(FeedRecord r) => jsonEncode({
@@ -366,7 +366,7 @@ class SyncEngine extends ChangeNotifier {
     }
   }
 
-  /// 逐筆比對。無衝突的自動合併;衝突交給使用者選(SPEC 第 4 節)。
+  /// 逐筆比對。無衝突的自動合併;衝突交給使用者選。
   Future<void> _merge(CloudStore c, Map<String, _RemoteRecord> remote, {required bool first}) async {
     final locals = {for (final r in await _db.select(_db.records).get()) r.id: r};
     final conflicts = <(RecordRow, _RemoteRecord, FeedRecord?)>[];
@@ -437,7 +437,7 @@ class SyncEngine extends ChangeNotifier {
     }
   }
 
-  /// 寶寶清單的合併(SPEC 第 15 節)。寶寶用**名字**認:手機上和雲端同名的就是同一個寶寶,
+  /// 寶寶清單的合併。寶寶用**名字**認:手機上和雲端同名的就是同一個寶寶,
   /// 手機上的改用雲端的序號(紀錄在雲端是用序號掛在寶寶底下的)。雲端的序號在手機上被另一個
   /// 不同名的寶寶占著,就把那個寶寶換到下一個沒用過的序號。合併後如果還有同名的寶寶,
   /// 是預期外的狀況:丟 [MergeProblem],不自動改名。
@@ -555,7 +555,7 @@ class SyncEngine extends ChangeNotifier {
     if (seq > remembered) await store.setSetting(Keys.babySeqMax, '$seq');
   }
 
-  /// 進入修改前先確認雲端的版本(SPEC 第 4、7 節)。雲端比較新而且手機上沒有未上傳的修改,
+  /// 進入修改前先確認雲端的版本。雲端比較新而且手機上沒有未上傳的修改,
   /// 就先拉回來。回傳 true 表示手機上的內容被更新了。最多等 8 秒,連不上就用手機上的。
   Future<bool> refreshBeforeEdit(String recordId) async {
     if (!await enabled()) return false;

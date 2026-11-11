@@ -7,8 +7,7 @@ import 'store.dart';
 
 /// 公用資料從哪裡來:下載過的(存在資料庫)或 App 內建的初始檔,用版本比較新的那一份。
 ///
-/// 內建檔在 assets/datasets/,和後端第一次建表的種子資料是同一份
-/// (tools/build_seed.py 產生)。發版習慣:更新公用資料後,下一次發版就把內建檔換成最新的。
+/// 內建檔在 assets/datasets/,和後端第一次建表的種子資料是同一份。發版習慣:更新公用資料後,下一次發版就把內建檔換成最新的。
 class CatalogSource {
   CatalogSource(this.store, {Future<String> Function(String)? loadAsset})
       : _loadAsset = loadAsset ?? rootBundle.loadString;

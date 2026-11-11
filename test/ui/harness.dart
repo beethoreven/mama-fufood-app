@@ -18,7 +18,7 @@ import 'package:mama_fufood/services/services.dart';
 import 'package:mama_fufood/state/providers.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
-/// 驗證的螢幕尺寸(SPEC 第 1 節):小螢幕約 320×640、S21、大螢幕約 412×915(單位 dp)。
+/// 驗證的螢幕尺寸:小螢幕約 320×640、S21、大螢幕約 412×915(單位 dp)。
 /// 上下的系統列:小螢幕假設是舊手機的三個按鈕導覽列(48 dp),其他是手勢導覽列。
 class Screen {
   const Screen(this.name, this.width, this.height, {required this.top, required this.bottom});
@@ -36,7 +36,7 @@ const screens = [
   Screen('large', 412, 915, top: 24, bottom: 24),
 ];
 
-/// 系統字型:預設與略大一級(Android 的「大」是 1.15 倍),不測最大字級(SPEC 第 1 節)。
+/// 系統字型:預設與略大一級(Android 的「大」是 1.15 倍),不測最大字級。
 const textScales = [1.0, 1.15];
 
 /// 測試裡的「現在」:2026-10-23(五)晚上 8 點(本機時間;紀錄都帶 +08:00,畫面和電腦的時區無關,

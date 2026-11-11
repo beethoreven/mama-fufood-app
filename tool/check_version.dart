@@ -1,4 +1,4 @@
-// 版本規則檢查(和專案 skill update_version 同一套規則,SPEC 第 2 節):
+// 版本規則檢查:
 // - pubspec.yaml 的 version 是 x.y.z+版本碼,x、y ≤ 99,z ≤ 9。
 // - 版本碼 = x×1000 + y×10 + z。
 // - x 就是匯出格式的版本:lib/services/export_format.dart 的 ExportFormat.version 必須等於 x。

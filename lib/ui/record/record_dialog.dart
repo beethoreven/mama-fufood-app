@@ -19,7 +19,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/wheel_picker.dart';
 
-/// 新增 / 檢視 / 編輯紀錄(SPEC 第 7 節):疊在畫面上、不滿版、內部可捲動,
+/// 新增 / 檢視 / 編輯紀錄:疊在畫面上、不滿版、內部可捲動,
 /// 按鈕固定在最下方。檢視:關閉、修改、刪除(刪除要二次確認);修改:取消、儲存。
 Future<void> showRecordDialog(BuildContext context, {required int babySeq, required Day day, String? recordId}) =>
     showDialog(
@@ -275,7 +275,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
     }.values.toList()
       ..sort((a, b) => a.sort.compareTo(b.sort));
 
-    // 和頁籤 3「食材判斷」同一個結果(SPEC 第 8 節):這個食材全部已存的紀錄,包含正在看的這一筆;
+    // 和頁籤 3「食材判斷」同一個結果:這個食材全部已存的紀錄,包含正在看的這一筆;
     // 修改中還沒儲存的內容不算。
     final history = knownOnly(ref.watch(allRecordsProvider(widget.babySeq)).value ?? const [], catalog)
         .where((r) => r.foodId == d.foodId)
@@ -595,7 +595,7 @@ class _RecordDialogState extends ConsumerState<RecordDialog> {
 
   Future<void> _startEdit() async {
     setState(() => _busy = true);
-    // 進入修改時先比對雲端版本(SPEC 第 4、7 節);沒開同步或連不上就用手機上的版本。
+    // 進入修改時先比對雲端版本;沒開同步或連不上就用手機上的版本。
     final changed = await ref.read(servicesProvider).sync.refreshBeforeEdit(widget.recordId!);
     if (!mounted) return;
     if (changed) {

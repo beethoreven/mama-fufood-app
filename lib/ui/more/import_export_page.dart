@@ -13,7 +13,7 @@ import '../flows.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
-/// 匯入/匯出(SPEC 第 4 節、EXPORT_FORMAT_DRAFT.md)。需要登入 Google 與雲端硬碟權限。
+/// 匯入/匯出。需要登入 Google 與雲端硬碟權限。
 class ImportExportPage extends ConsumerStatefulWidget {
   const ImportExportPage({super.key});
 

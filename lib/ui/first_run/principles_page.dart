@@ -5,7 +5,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import '../../core/log.dart';
 import '../theme.dart';
 
-/// 第一次開啟時的「資料運用原則」(SPEC 第 5 節):必須捲到最下面,「我了解了」才能按;
+/// 第一次開啟時的「資料運用原則」:必須捲到最下面,「我了解了」才能按;
 /// 這個頁面關不掉。隱私權政策或使用者條款改版後第一次開啟,也會再顯示一次。
 class PrinciplesPage extends StatefulWidget {
   const PrinciplesPage({super.key, required this.onAccepted, required this.isUpdate});

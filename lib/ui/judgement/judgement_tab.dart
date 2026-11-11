@@ -9,7 +9,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/wheel_picker.dart';
 
-/// 頁籤 3「食材判斷」與頁籤 4「腹瀉嘔吐」(SPEC 第 7 節、第 14 節)。兩頁版面一樣:
+/// 頁籤 3「食材判斷」與頁籤 4「腹瀉嘔吐」。兩頁版面一樣:
 /// 篩選分組、食材(食材須先選分組,可只選分組),列出所選分組的全部食材,各附兩個圖示——
 /// 頁籤 3 是喜好與過敏,頁籤 4 是腹瀉與嘔吐;紀錄不足的位置留空。
 class JudgementTab extends ConsumerStatefulWidget {

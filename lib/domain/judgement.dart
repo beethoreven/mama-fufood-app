@@ -1,7 +1,7 @@
 import '../core/time.dart';
 import 'record.dart';
 
-/// 判斷規則,**寫死在 App 內**(SPEC 第 8 節;要改就發新版 App,
+/// 判斷規則,**寫死在 App 內**(要改就發新版 App,
 /// 必要時強制更新)。規則改了,判斷邏輯說明頁(assets/texts/judgement_guide.md)要在同一版一起改。
 ///
 /// 只是把使用者自己的紀錄整理成比較容易看的樣子,不是醫療判斷。

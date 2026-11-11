@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-/// 設計規範:風格 C「可愛粉藍」(design/DESIGN_SYSTEM.md)。
-/// 各畫面一律從這裡取值。所有文字與背景的對比度都在 4.5 以上(規範裡實測過)。
+/// 設計規範:風格「可愛粉藍」。
+/// 各畫面一律從這裡取值。所有文字與背景的對比度都在 4.5 以上(實測過)。
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
   const AppColors({
@@ -187,7 +187,7 @@ ThemeData buildTheme(Brightness brightness) {
       hintStyle: s(14, 400, c.muted),
       labelStyle: s(14, 400, c.text2),
     ),
-    // 選項選中:選中底色 + 主色外框(DESIGN_SYSTEM.md「狀態」)。
+    // 選項選中:選中底色 + 主色外框。
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: ButtonStyle(
         backgroundColor: WidgetStateProperty.resolveWith((st) => st.contains(WidgetState.selected) ? c.accentSoft : c.surface2),

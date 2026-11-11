@@ -15,7 +15,7 @@ import '../theme.dart';
 import '../widgets/common.dart';
 import '../widgets/wheel_picker.dart';
 
-/// App 設定(SPEC 第 6 節):週起始日、主題、紀錄同步開關、照片雲端開關(含固定提醒文字)、
+/// App 設定:週起始日、主題、紀錄同步開關、照片雲端開關(含固定提醒文字)、
 /// 需登入才能更新公用資料的說明、App 版本與各資料集版本及最後檢查時間、手動「檢查更新」、
 /// 開放原始碼授權。
 class SettingsPage extends ConsumerStatefulWidget {
@@ -153,7 +153,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   }
                 },
         ),
-        // 規格要求寫死的提醒(SPEC 第 4 節)。
+        // 固定的提醒文字,不能關掉。
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: Text('只開「照片存到雲端」、沒開「紀錄與雲端同步」時，手機遺失後照片會留在你的雲端硬碟，但對應的紀錄會遺失。',
@@ -209,7 +209,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         ),
       ]),
       if (kDebugMode)
-        // 除錯工具只在 debug 版出現;release 版在編譯時就被移除(SPEC 第 2 節)。
+        // 除錯工具只在 debug 版出現;release 版在編譯時就被移除。
         section('除錯工具（只有 debug 版）', [
           ListTile(title: const Text('故意當機（Dart）'), onTap: () => throw StateError('debug crash')),
           ListTile(title: const Text('故意當機（原生層）'), onTap: PlatformInfo.debugCrashNative),

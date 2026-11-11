@@ -1,5 +1,4 @@
 /// 限制與數值集中寫成常數,要調整只改這裡。
-/// 數值的理由寫在 SPEC_DRAFT.md。
 library;
 
 abstract final class Limits {

@@ -10,7 +10,7 @@ import '../flows.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
-/// 意見回饋(SPEC 第 10 節「送出流程」):描述只有一個自由填寫的欄位(必填,上限 1000 字);
+/// 意見回饋:描述只有一個自由填寫的欄位(必填,上限 1000 字);
 /// 送出前選類型;按「送出」後先顯示確認畫面,按「確認送出」才送。
 class FeedbackPage extends ConsumerStatefulWidget {
   const FeedbackPage({super.key, this.kind = FeedbackKind.suggestion});

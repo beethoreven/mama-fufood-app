@@ -8,7 +8,7 @@ import '../flows.dart';
 import '../theme.dart';
 import '../widgets/common.dart';
 
-/// 寶寶們設定(新增、改名、刪除)。名稱最多 20 字、不可重複、最多 8 個寶寶(SPEC 第 5 節)。
+/// 寶寶們設定(新增、改名、刪除)。名稱最多 20 字、不可重複、最多 8 個寶寶。
 class BabiesPage extends ConsumerWidget {
   const BabiesPage({super.key});
 

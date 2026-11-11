@@ -30,7 +30,7 @@ class ForceUpdate {
   final String url;
 }
 
-/// 每日檢查(SPEC 第 3 節第 2、3 項):登入後,開 App 時每天自動檢查一次公用資料的版本與
+/// 每日檢查:登入後,開 App 時每天自動檢查一次公用資料的版本與
 /// 最低可用 App 版本;失敗至少間隔 2 小時、一天最多重試 5 次;App 設定也可以手動檢查
 /// (和自動檢查共用伺服器的每日 10 次)。「一天」以台北時間計。
 class DailyCheckService extends ChangeNotifier {

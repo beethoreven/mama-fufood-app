@@ -8,7 +8,7 @@ import '../core/env.dart';
 import '../core/log.dart';
 import '../core/time.dart';
 
-/// 雲端硬碟的權限(SPEC 第 6 節:用到才要求)。
+/// 雲端硬碟的權限(用到才要求)。
 abstract final class DriveScopes {
   /// 只能存取本 App 自己的雲端資料區:紀錄同步、匯出檔的金鑰。
   static const appData = 'https://www.googleapis.com/auth/drive.appdata';
@@ -60,13 +60,13 @@ abstract class AuthStorage {
   Future<void> write(String key, String? value);
 }
 
-/// Google 登入(SPEC 第 6 節)。
+/// Google 登入。
 ///
 /// - **登入一次就記住**:使用者按「登入」後,記住是哪個帳號,並用 Google 的 ID Token 跟後端換一張
-///   App 的通行證(後端 auth_utils/app_tokens.py)存在手機上。之後開 App 直接是登入狀態,
+///   App 的通行證(後端的 /api/v1/session)存在手機上。之後開 App 直接是登入狀態,
 ///   後端請求都帶通行證;只有按「登出」才登出。
 ///   ★ 不在開 App 時請系統「自動登入」:系統不肯時,Google 的登入外掛會自己改跳選帳號畫面,
-///     使用者按掉就變成沒登入(實際發生過,重開 App 就跳選帳號、登入不見)。
+///     使用者按掉就變成沒登入,重開 App 時常跳出選帳號畫面、登入不見。
 /// - 登入時只要求基本資料(Email、名稱、頭像);雲端硬碟權限在開啟雲端功能或第一次匯出、
 ///   匯入時才要求,用 Google 的授權 API 拿,不需要先「自動登入」。
 /// - Android 上用系統的帳號選擇畫面(Credential Manager),不開瀏覽器(google_sign_in 7)。
@@ -149,7 +149,7 @@ class AuthService extends ChangeNotifier {
 
   void _setUser(SignedInUser? user) {
     _user = user;
-    // 送出的診斷資料裡,出現帳號的顯示名稱(通常是本名)就遮蔽(SPEC 第 10 節)。
+    // 送出的診斷資料裡,出現帳號的顯示名稱(通常是本名)就遮蔽。
     AppLog.accountName = user?.name;
     notifyListeners();
   }

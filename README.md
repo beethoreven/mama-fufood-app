@@ -9,7 +9,6 @@
 
 這兩部分刻意分開,不要交叉閱讀;報告是背景知識,SOP 是操作手冊。
 
-程式註解裡的「SPEC 第 N 節」、`SPEC_DRAFT.md`、`EXPORT_FORMAT_DRAFT.md`、`DESIGN_SYSTEM.md`、`tools/*.py` 等,是只留在開發者本機的規格、設計文件與工具,不在 repo 裡。
 
 ---
 
@@ -105,7 +104,7 @@ App 連到的地方:
 
 ### 套件版本的取捨
 
-所有套件釘在 2026-10-23 當下的最新正式版(`pubspec.yaml`),Flutter 也釘在 3.47.7。例外與原因都寫在 `pubspec.yaml` 旁邊:
+所有套件釘在 2026-10-23 當下的最新正式版(`pubspec.yaml`),Flutter 釘在 3.47.9(2026-11-12 的最新正式版)。例外與原因都寫在 `pubspec.yaml` 旁邊:
 
 - `build_runner` 停在 2.16.2:最新的 2.17.1 需要 `build` 5,但最新的 `drift_dev` 2.35.1 只支援 `build` 4;2.17.0 已被撤回。
 - 不用 `device_info_plus`、`battery_plus`、`connectivity_plus`:後兩者的最新版彼此衝突(都綁了不同版本的 `dbus`),而且需要的欄位只有幾個,改由自己的原生程式取得。
@@ -151,7 +150,7 @@ test/
 tool/check_version.dart   版本號規則檢查
 ```
 
-`assets/datasets/` 與 `assets/texts/` 是從規格文件產生的(和後端、網站的是同一份),不要直接改。
+`assets/datasets/` 與 `assets/texts/` 和後端、網站的是同一份,不要只改這裡。
 
 ### 已知限制
 
@@ -168,15 +167,15 @@ tool/check_version.dart   版本號規則檢查
 
 ## Part A. 開發環境
 
-### 1. 安裝 Flutter 3.47.7
+### 1. 安裝 Flutter 3.47.9
 
-這個 repo 釘在 Flutter **3.47.7**(`pubspec.yaml` 的 `environment.flutter`)。照 [Flutter 官方的 macOS 安裝說明](https://docs.flutter.dev/get-started/install/macos) 裝到 `~/development/flutter`,切到這個版本,然後讓終端機找得到它:
+這個 repo 釘在 Flutter **3.47.9**(`pubspec.yaml` 的 `environment.flutter`)。照 [Flutter 官方的 macOS 安裝說明](https://docs.flutter.dev/get-started/install/macos) 裝到 `~/development/flutter`,切到這個版本,然後讓終端機找得到它:
 
 ```bash
 echo 'export PATH="$HOME/development/flutter/bin:$PATH"' >> ~/.zshrc
 ```
 
-關掉終端機再打開,執行 `flutter --version`,應該顯示 3.47.7。
+關掉終端機再打開,執行 `flutter --version`,應該顯示 3.47.9。
 
 ### 2. 安裝 Android SDK 與模擬器
 
@@ -291,7 +290,6 @@ The Flutter app for *媽媽記副食品* ("Mama's Baby Food Log"), an app for lo
 
 These two parts are deliberately kept separate — don't read them interleaved; the report is background knowledge, the guide is an operating manual.
 
-References in code comments such as "SPEC 第 N 節" (SPEC section N), `SPEC_DRAFT.md`, `EXPORT_FORMAT_DRAFT.md`, `DESIGN_SYSTEM.md` and `tools/*.py` point to specs, design documents and tools that live only on the developer's machine; they are not in this repo.
 
 ## Project Report
 
@@ -385,7 +383,7 @@ The release signing key is critical: **once a build is installed on a phone, eve
 
 ### Dependency Version Trade-offs
 
-Every package is pinned to the latest stable release as of 2026-10-23 (`pubspec.yaml`), and Flutter is pinned to 3.47.7. The exceptions and their reasons are written next to them in `pubspec.yaml`:
+Every package is pinned to the latest stable release as of 2026-10-23 (`pubspec.yaml`), and Flutter is pinned to 3.47.9 (the latest stable release as of 2026-11-12). The exceptions and their reasons are written next to them in `pubspec.yaml`:
 
 - `build_runner` stays at 2.16.2: the latest 2.17.1 needs `build` 5, but the latest `drift_dev` 2.35.1 only supports `build` 4; 2.17.0 was retracted.
 - No `device_info_plus`, `battery_plus` or `connectivity_plus`: the latest versions of the last two conflict (they pin different `dbus` versions), and only a few fields are needed, so the app's own native code reads them.
@@ -431,7 +429,7 @@ test/
 tool/check_version.dart   version-number rule check
 ```
 
-`assets/datasets/` and `assets/texts/` are generated from the spec documents (identical to the backend's and the website's copies) — don't edit them directly.
+`assets/datasets/` and `assets/texts/` are identical to the backend's and the website's copies — don't change them here alone.
 
 ### Known Limitations
 
@@ -448,15 +446,15 @@ tool/check_version.dart   version-number rule check
 
 ## Part A. Development Environment
 
-### 1. Install Flutter 3.47.7
+### 1. Install Flutter 3.47.9
 
-This repo is pinned to Flutter **3.47.7** (`environment.flutter` in `pubspec.yaml`). Follow [Flutter's official macOS install guide](https://docs.flutter.dev/get-started/install/macos) to install it into `~/development/flutter`, switch to this version, then make the terminal find it:
+This repo is pinned to Flutter **3.47.9** (`environment.flutter` in `pubspec.yaml`). Follow [Flutter's official macOS install guide](https://docs.flutter.dev/get-started/install/macos) to install it into `~/development/flutter`, switch to this version, then make the terminal find it:
 
 ```bash
 echo 'export PATH="$HOME/development/flutter/bin:$PATH"' >> ~/.zshrc
 ```
 
-Close and reopen the terminal and run `flutter --version`; it should print 3.47.7.
+Close and reopen the terminal and run `flutter --version`; it should print 3.47.9.
 
 ### 2. Install the Android SDK and an Emulator
 

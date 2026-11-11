@@ -9,7 +9,7 @@ import '../record/record_dialog.dart';
 import '../theme.dart';
 
 /// 點有紀錄的日子 → 置中小清單(食材圖示 + 名稱,依時間由早到晚,最下面固定「新增」;
-/// 已滿 10 筆則沒有「新增」;一欄放不下時改成兩欄;清單區可捲動)。SPEC 第 7 節。
+/// 已滿 10 筆則沒有「新增」;一欄放不下時改成兩欄;清單區可捲動)。
 Future<void> showDayListDialog(BuildContext context, {required int babySeq, required Day day}) =>
     showDialog(context: context, builder: (_) => _DayListDialog(babySeq: babySeq, day: day));
 
