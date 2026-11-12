@@ -259,7 +259,7 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 
 | 欄位 | 必填? | 說明 |
 |---|---|---|
-| `MFF_API_BASE` | **必填**(要用連網功能時) | 後端網址,例如 `https://mama-fufood-backend.onrender.com`,**結尾不要斜線**。沒填時,檢查更新、意見回饋顯示「這個版本還沒設定後端網址」。 |
+| `MFF_API_BASE` | **必填**(要用連網功能時) | 後端網址,例如 `https://router-backend-3hl2.onrender.com/mama-fufood`,**結尾不要斜線**。沒填時,檢查更新、意見回饋顯示「這個版本還沒設定後端網址」。 |
 | `MFF_WEB_CLIENT_ID` | **必填**(要用 Google 登入時) | Google Cloud「網頁應用程式」用戶端 ID(和後端的 `GOOGLE_CLIENT_ID` 是同一個)。Android 用戶端的 ID 不用填,Google 用套件名稱加 SHA-1 對應。 |
 
 **`android/key.properties`**(不進 git;正式版的簽署金鑰):
@@ -538,7 +538,7 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 
 | Field | Required? | Description |
 |---|---|---|
-| `MFF_API_BASE` | **Required** (for online features) | The backend URL, e.g. `https://mama-fufood-backend.onrender.com`, **no trailing slash**. Without it, update checks and feedback show "這個版本還沒設定後端網址" (this build has no backend URL configured). |
+| `MFF_API_BASE` | **Required** (for online features) | The backend URL, e.g. `https://router-backend-3hl2.onrender.com/mama-fufood`, **no trailing slash**. Without it, update checks and feedback show "這個版本還沒設定後端網址" (this build has no backend URL configured). |
 | `MFF_WEB_CLIENT_ID` | **Required** (for Google sign-in) | The Google Cloud "Web application" client ID (the same one as the backend's `GOOGLE_CLIENT_ID`). The Android client's ID isn't entered anywhere — Google matches it by package name plus SHA-1. |
 
 **`android/key.properties`** (not in git; the release signing key):
