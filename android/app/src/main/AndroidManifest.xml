@@ -8,7 +8,7 @@
     <!-- 選照片用系統的照片挑選器,不要求讀取整個相簿的權限。 -->
     <application
         android:label="媽媽記副食品"
-        android:name=".MamaApp"
+        android:name=".MamaFufoodApp"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="true"
         android:fullBackupContent="@xml/backup_rules"

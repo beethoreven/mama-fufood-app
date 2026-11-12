@@ -100,7 +100,7 @@ App 連到的地方:
 
 ### 正式版一定要用自己的金鑰簽
 
-正式版(release)的簽署金鑰非常重要:**裝到手機之後,之後的每一版都要用同一把簽**,否則只能先解除安裝(手機上的資料會不見)。所以 `android/app/build.gradle.kts` 在沒有 `android/key.properties` 時,打包正式版會直接停下來並說明原因,避免不小心用除錯金鑰簽出一版裝到要長期使用的手機上。只想在自己的模擬器上試 release 版時,可以設環境變數 `MFF_ALLOW_DEBUG_SIGNING=1`。
+正式版(release)的簽署金鑰非常重要:**裝到手機之後,之後的每一版都要用同一把簽**,否則只能先解除安裝(手機上的資料會不見)。所以 `android/app/build.gradle.kts` 在沒有 `android/key.properties` 時,打包正式版會直接停下來並說明原因,避免不小心用除錯金鑰簽出一版裝到要長期使用的手機上。只想在自己的模擬器上試 release 版時,可以設環境變數 `MAMA_FUFOOD_ALLOW_DEBUG_SIGNING=1`。
 
 ### 套件版本的取捨
 
@@ -231,7 +231,7 @@ flutter test test/ui/golden --update-goldens
 想看實際的樣子(真字型,存到 `test/ui/layout/shots/`,不進 git):
 
 ```bash
-flutter test test/ui/layout --dart-define=MFF_SHOTS=true --update-goldens
+flutter test test/ui/layout --dart-define=MAMA_FUFOOD_SHOTS=true --update-goldens
 ```
 
 ---
@@ -245,7 +245,7 @@ flutter test test/ui/layout --dart-define=MFF_SHOTS=true --update-goldens
 只想在自己的模擬器上試 release 版(不裝到別人手機)時,不需要正式的金鑰:
 
 ```bash
-MFF_ALLOW_DEBUG_SIGNING=1 flutter build apk --release
+MAMA_FUFOOD_ALLOW_DEBUG_SIGNING=1 flutter build apk --release
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
 
@@ -275,7 +275,7 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 
 | 變數 | 說明 |
 |---|---|
-| `MFF_ALLOW_DEBUG_SIGNING` | 設成 `1` 時,沒有 `key.properties` 也能打包正式版(用除錯金鑰簽,只給自己的模擬器用)。 |
+| `MAMA_FUFOOD_ALLOW_DEBUG_SIGNING` | 設成 `1` 時,沒有 `key.properties` 也能打包正式版(用除錯金鑰簽,只給自己的模擬器用)。 |
 
 ---
 
@@ -379,7 +379,7 @@ The allergy and preference rules (`lib/domain/judgement.dart`) are written into 
 
 ### Release Builds Must Be Signed with Your Own Key
 
-The release signing key is critical: **once a build is installed on a phone, every later version must be signed with the same key**, or the only way forward is uninstalling (which deletes the phone's data). So `android/app/build.gradle.kts` stops a release build with an explanation when `android/key.properties` is missing, so a debug-key-signed build can't accidentally end up on the phone that will use it long-term. To try a release build on your own emulator only, set the environment variable `MFF_ALLOW_DEBUG_SIGNING=1`.
+The release signing key is critical: **once a build is installed on a phone, every later version must be signed with the same key**, or the only way forward is uninstalling (which deletes the phone's data). So `android/app/build.gradle.kts` stops a release build with an explanation when `android/key.properties` is missing, so a debug-key-signed build can't accidentally end up on the phone that will use it long-term. To try a release build on your own emulator only, set the environment variable `MAMA_FUFOOD_ALLOW_DEBUG_SIGNING=1`.
 
 ### Dependency Version Trade-offs
 
@@ -510,7 +510,7 @@ flutter test test/ui/golden --update-goldens
 To see what it really looks like (real fonts, saved to `test/ui/layout/shots/`, not in git):
 
 ```bash
-flutter test test/ui/layout --dart-define=MFF_SHOTS=true --update-goldens
+flutter test test/ui/layout --dart-define=MAMA_FUFOOD_SHOTS=true --update-goldens
 ```
 
 ---
@@ -524,7 +524,7 @@ After a release build (`assembleRelease`, `bundleRelease`), `android/app/build.g
 To try a release build on your own emulator only (not on anyone else's phone), no real key is needed:
 
 ```bash
-MFF_ALLOW_DEBUG_SIGNING=1 flutter build apk --release
+MAMA_FUFOOD_ALLOW_DEBUG_SIGNING=1 flutter build apk --release
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
 
@@ -554,4 +554,4 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 
 | Variable | Description |
 |---|---|
-| `MFF_ALLOW_DEBUG_SIGNING` | When set to `1`, a release build works without `key.properties` (signed with the debug key — for your own emulator only). |
+| `MAMA_FUFOOD_ALLOW_DEBUG_SIGNING` | When set to `1`, a release build works without `key.properties` (signed with the debug key — for your own emulator only). |

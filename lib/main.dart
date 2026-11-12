@@ -14,7 +14,7 @@ import 'state/providers.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   registerBundledLicenses();
-  // 當機捕捉:Dart 層的錯誤寫進本機記錄檔;原生層由 MamaApp.kt 處理。
+  // 當機捕捉:Dart 層的錯誤寫進本機記錄檔;原生層由 MamaFufoodApp.kt 處理。
   FlutterError.onError = (details) {
     AppLog.error('flutter.error', details.exception, details.stack);
     if (kDebugMode) FlutterError.presentError(details);
@@ -28,6 +28,6 @@ Future<void> main() async {
   final services = await Services.create();
   runApp(ProviderScope(
     overrides: [servicesProvider.overrideWithValue(services)],
-    child: const MamaApp(),
+    child: const MamaFufoodApp(),
   ));
 }

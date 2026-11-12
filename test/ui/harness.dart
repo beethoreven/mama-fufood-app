@@ -50,7 +50,7 @@ void setUpUiTests() {
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
   late Directory tmp;
   setUpAll(() {
-    tmp = Directory.systemTemp.createTempSync('mff_ui_');
+    tmp = Directory.systemTemp.createTempSync('mama_fufood_ui_');
     // App 自己的原生程式(DiagnosticsChannel.kt)在測試裡不存在,換成固定的回答。
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(
       _diagnosticsChannel,
@@ -155,7 +155,7 @@ Future<void> pumpApp(WidgetTester tester, Services services, Screen screen, doub
   addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
   await tester.pumpWidget(ProviderScope(
     overrides: [servicesProvider.overrideWithValue(services)],
-    child: RepaintBoundary(key: shotKey, child: const MamaApp()),
+    child: RepaintBoundary(key: shotKey, child: const MamaFufoodApp()),
   ));
   await settle(tester);
 }

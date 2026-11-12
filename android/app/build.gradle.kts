@@ -54,7 +54,7 @@ android {
 
     buildTypes {
         release {
-            // 沒有 key.properties 時只有在開發者明確允許(環境變數 MFF_ALLOW_DEBUG_SIGNING=1)
+            // 沒有 key.properties 時只有在開發者明確允許(環境變數 MAMA_FUFOOD_ALLOW_DEBUG_SIGNING=1)
             // 才用除錯金鑰簽,避免不小心把除錯金鑰簽的版本裝到家人手機上。
             signingConfig = if (hasReleaseKey) signingConfigs.getByName("release") else signingConfigs.getByName("debug")
         }
@@ -82,10 +82,10 @@ tasks.configureEach {
     }
     if (name == "assembleRelease" || name == "bundleRelease") {
         doFirst {
-            if (!hasReleaseKey && System.getenv("MFF_ALLOW_DEBUG_SIGNING") != "1") {
+            if (!hasReleaseKey && System.getenv("MAMA_FUFOOD_ALLOW_DEBUG_SIGNING") != "1") {
                 throw GradleException(
                     "缺少 android/key.properties(正式版的簽署金鑰)。請照 meta repo(mama-fufood)README 上線 SOP 的 Part G 建立;" +
-                        "只是要在自己的模擬器上試 release 版的話,可以設定環境變數 MFF_ALLOW_DEBUG_SIGNING=1。"
+                        "只是要在自己的模擬器上試 release 版的話,可以設定環境變數 MAMA_FUFOOD_ALLOW_DEBUG_SIGNING=1。"
                 )
             }
         }

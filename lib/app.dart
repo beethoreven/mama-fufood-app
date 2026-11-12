@@ -9,8 +9,8 @@ import 'ui/widgets/wheel_picker.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 
-class MamaApp extends ConsumerWidget {
-  const MamaApp({super.key});
+class MamaFufoodApp extends ConsumerWidget {
+  const MamaFufoodApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

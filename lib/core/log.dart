@@ -89,7 +89,7 @@ abstract final class AppLog {
 
   static void _emit(String level, String code, Map<String, Object?> fields) {
     final line = jsonEncode({'t': DateTime.now().toUtc().toIso8601String(), 'lv': level, 'c': code, ...fields});
-    if (kDebugMode) debugPrint('[mff] $line');
+    if (kDebugMode) debugPrint('[mama-fufood] $line');
     if (_dir == null) {
       if (_pending.length < 500) _pending.add(line);
       return;

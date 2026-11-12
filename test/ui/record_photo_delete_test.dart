@@ -31,7 +31,7 @@ void main() {
   late Directory root;
 
   setUp(() async {
-    root = Directory.systemTemp.createTempSync('mff_ui_photo_');
+    root = Directory.systemTemp.createTempSync('mama_fufood_ui_photo_');
     PathProviderPlatform.instance = _TempPaths(root.path);
   });
 

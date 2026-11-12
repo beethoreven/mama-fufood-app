@@ -114,21 +114,21 @@ class ExportService {
 
       progress?.call('加密');
       final key = await ExportKeys(cloud).getOrCreate();
-      final header = MffHeader(
+      final header = ExportHeader(
         formatVersion: ExportFormat.version,
         appVersion: appVersion(),
         exportedAt: TimeRules.isoMillis(DateTime.now().toUtc().millisecondsSinceEpoch),
         keyId: key.id,
-        noncePrefix: base64.encode(MffCrypto.randomBytes(8)),
+        noncePrefix: base64.encode(ExportCrypto.randomBytes(8)),
       );
-      final mff = File(p.join(tmp.path, 'out.mff'));
-      await MffCrypto.encryptFile(plain: zipFile, out: mff, header: header, key: key.bytes);
+      final encrypted = File(p.join(tmp.path, 'out.mff'));
+      await ExportCrypto.encryptFile(plain: zipFile, out: encrypted, header: header, key: key.bytes);
 
       progress?.call('上傳到雲端硬碟');
       final name = fileName(DateTime.now());
       final folderId = await cloud.folder(folder);
-      final length = await mff.length();
-      final uploaded = await cloud.upload(folderId, name, mff.openRead(), length, 'application/octet-stream');
+      final length = await encrypted.length();
+      final uploaded = await cloud.upload(folderId, name, encrypted.openRead(), length, 'application/octet-stream');
       uploadedId = uploaded.id;
 
       // 匯出後立即驗證:重新讀回、逐段解密,核對紀錄筆數與每張照片都在。
@@ -136,7 +136,7 @@ class ExportService {
       final back = File(p.join(tmp.path, 'back.mff'));
       await cloud.downloadToFile(uploaded.id, back);
       final backZip = File(p.join(tmp.path, 'back.zip'));
-      await MffCrypto.decryptFile(mff: back, out: backZip, key: key.bytes);
+      await ExportCrypto.decryptFile(encrypted: back, out: backZip, key: key.bytes);
       final archive = ZipDecoder().decodeStream(InputFileStream(backZip.path));
       final dataEntry = archive.findFile('data.json');
       if (dataEntry == null) throw const _VerifyFailed();
@@ -155,7 +155,7 @@ class ExportService {
       AppLog.warn('export.verify_failed');
       if (uploadedId != null) await cloud.delete(uploadedId);
       throw const ExportProblem('匯出沒有成功，請再試一次。（壞掉的檔案已刪除）');
-    } on MffCorrupted {
+    } on ExportCorrupted {
       AppLog.warn('export.verify_failed');
       if (uploadedId != null) await cloud.delete(uploadedId);
       throw const ExportProblem('匯出沒有成功，請再試一次。（壞掉的檔案已刪除）');
