@@ -3,11 +3,11 @@ import '../core/text.dart';
 import '../core/time.dart';
 import '../domain/record.dart';
 
-/// 匯出格式第 1 版的 data.json(App 1.x)。
+/// 匯出格式第 1 版的 data.json(App 1.0.0 起)。
 /// 後端 export_formats/v1.json 是同一份規則;兩邊都要通過 export_formats/samples/v1.json。
 /// 第 0 版(上架前,App 0.x,沒有 digestive)的檔案匯入時由後端轉成第 1 版。
 abstract final class ExportFormat {
-  /// 格式版本 = App 的主版本號 x。改格式時要升 x,並在後端新增轉換程式。
+  /// 格式版本,和 App 的版本號分開記。改格式時要升這個數字,並在後端新增轉換程式。
   static const version = 1;
 
   static Map<String, Object?> encodeRecord(FeedRecord r, {required bool photosAsPaths}) => {

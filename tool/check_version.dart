@@ -1,7 +1,8 @@
 // 版本規則檢查:
 // - pubspec.yaml 的 version 是 x.y.z+版本碼,x、y ≤ 99,z ≤ 9。
 // - 版本碼 = x×1000 + y×10 + z。
-// - x 就是匯出格式的版本:lib/services/export_format.dart 的 ExportFormat.version 必須等於 x。
+// - x 在重大修改時升;匯出格式的版本另外記在 lib/services/export_format.dart 的 ExportFormat.version,
+//   不必等於 x。
 //
 //     dart run tool/check_version.dart
 import 'dart:io';
@@ -15,12 +16,6 @@ void main() {
   if (x > 99 || y > 99 || z > 9) _fail('x、y 最大 99,z 最大 9(z 用完就改升 y)');
   final expected = x * 1000 + y * 10 + z;
   if (code != expected) _fail('版本碼應該是 $expected(x×1000 + y×10 + z),現在是 $code');
-  final format = File('lib/services/export_format.dart').readAsStringSync();
-  final f = RegExp(r'static const version = (\d+);').firstMatch(format);
-  if (f == null) _fail('找不到 ExportFormat.version');
-  if (int.parse(f.group(1)!) != x) {
-    _fail('主版本號 x($x)必須等於匯出格式版本(${f.group(1)}):只有匯出格式改變時才升 x');
-  }
   stdout.writeln('版本 $x.$y.$z+$code 符合規則');
 }
 
