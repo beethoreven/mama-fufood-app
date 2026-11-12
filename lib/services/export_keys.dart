@@ -50,7 +50,7 @@ class ExportKeys {
     if (existing.isNotEmpty) {
       return _earliest([for (final f in existing) await _read(f)]);
     }
-    final key = ExportKey(newId(), ExportCrypto.randomBytes(32), DateTime.now().toUtc().millisecondsSinceEpoch);
+    final key = ExportKey(newId(), MffCrypto.randomBytes(32), DateTime.now().toUtc().millisecondsSinceEpoch);
     final body = Uint8List.fromList(utf8.encode(jsonEncode({'key_id': key.id, 'key': base64.encode(key.bytes), 'created_at': key.createdAt})));
     await cloud.createAppData('$prefix${key.id}.json', body, props: {'c': '${key.createdAt}'});
     AppLog.info('export.key_created');

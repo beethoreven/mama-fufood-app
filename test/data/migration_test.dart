@@ -10,7 +10,7 @@ import 'package:mama_fufood/domain/record.dart';
 /// 資料庫第 1 版(App 0.x)升到第 2 版(App 1.0.0):舊紀錄保留,「腹瀉或嘔吐」是空的,之後可以寫入。
 void main() {
   test('從第 1 版升級：舊紀錄都在，新欄位是空的', () async {
-    final dir = Directory.systemTemp.createTempSync('mama_fufood_db_');
+    final dir = Directory.systemTemp.createTempSync('mff_db_');
     addTearDown(() => dir.deleteSync(recursive: true));
     final file = File('${dir.path}/mff.sqlite');
 

@@ -14,15 +14,15 @@ Map<String, Object?> sample() => (jsonDecode(File('test/fixtures/export_v1_sampl
 
 void main() {
   late Directory tmp;
-  setUp(() => tmp = Directory.systemTemp.createTempSync('mama_fufood_test_'));
+  setUp(() => tmp = Directory.systemTemp.createTempSync('mff_test_'));
   tearDown(() => tmp.deleteSync(recursive: true));
 
-  ExportHeader header(String keyId) => ExportHeader(
+  MffHeader header(String keyId) => MffHeader(
         formatVersion: ExportFormat.version,
         appVersion: '1.0.0',
         exportedAt: '2026-10-23T08:30:00.000Z',
         keyId: keyId,
-        noncePrefix: base64.encode(ExportCrypto.randomBytes(8)),
+        noncePrefix: base64.encode(MffCrypto.randomBytes(8)),
       );
 
   group('匯出格式：和後端是同一份規則（export_formats/samples/v1.json）', () {
@@ -58,59 +58,59 @@ void main() {
   });
 
   group('加密（AES-256-GCM，每段 1 MiB）', () {
-    final key = ExportCrypto.randomBytes(32);
+    final key = MffCrypto.randomBytes(32);
 
     Future<File> roundTrip(List<int> content) async {
       final plain = File('${tmp.path}/plain.bin')..writeAsBytesSync(content);
-      final encrypted = File('${tmp.path}/out.mff');
-      await ExportCrypto.encryptFile(plain: plain, out: encrypted, header: header('k1'), key: key);
-      return encrypted;
+      final mff = File('${tmp.path}/out.mff');
+      await MffCrypto.encryptFile(plain: plain, out: mff, header: header('k1'), key: key);
+      return mff;
     }
 
     test('多段內容加密再解密，一個位元組都不差', () async {
-      final content = List<int>.generate(ExportCrypto.segment * 2 + 12345, (i) => (i * 31) % 251);
-      final encrypted = await roundTrip(content);
-      final (h, _) = (await ExportCrypto.readHeader(encrypted))!;
+      final content = List<int>.generate(MffCrypto.segment * 2 + 12345, (i) => (i * 31) % 251);
+      final mff = await roundTrip(content);
+      final (h, _) = (await MffCrypto.readHeader(mff))!;
       expect(h.keyId, 'k1');
       final back = File('${tmp.path}/back.bin');
-      await ExportCrypto.decryptFile(encrypted: encrypted, out: back, key: key);
+      await MffCrypto.decryptFile(mff: mff, out: back, key: key);
       expect(back.readAsBytesSync(), content);
     });
 
     test('剛好整段的長度也可以', () async {
-      final content = List<int>.filled(ExportCrypto.segment, 7);
+      final content = List<int>.filled(MffCrypto.segment, 7);
       final back = File('${tmp.path}/back.bin');
-      await ExportCrypto.decryptFile(encrypted: await roundTrip(content), out: back, key: key);
-      expect(back.lengthSync(), ExportCrypto.segment);
+      await MffCrypto.decryptFile(mff: await roundTrip(content), out: back, key: key);
+      expect(back.lengthSync(), MffCrypto.segment);
     });
 
     test('改了一個位元、截掉最後一段、改了檔頭、用錯金鑰：都解不開', () async {
-      final content = List<int>.generate(ExportCrypto.segment + 100, (i) => i % 256);
-      final encrypted = await roundTrip(content);
-      final bytes = encrypted.readAsBytesSync();
+      final content = List<int>.generate(MffCrypto.segment + 100, (i) => i % 256);
+      final mff = await roundTrip(content);
+      final bytes = mff.readAsBytesSync();
       final back = File('${tmp.path}/back.bin');
 
       final flipped = Uint8List.fromList(bytes)..[bytes.length - 50] ^= 1;
       final f1 = File('${tmp.path}/f1.mff')..writeAsBytesSync(flipped);
-      await expectLater(ExportCrypto.decryptFile(encrypted: f1, out: back, key: key), throwsA(isA<ExportCorrupted>()));
+      await expectLater(MffCrypto.decryptFile(mff: f1, out: back, key: key), throwsA(isA<MffCorrupted>()));
 
       // 截掉最後一段:剩下的最後一段當初是用「不是最後一段」的標記加密的,解得出來就是漏洞。
       final truncated = bytes.sublist(0, bytes.length - 100 - 16);
       final f2 = File('${tmp.path}/f2.mff')..writeAsBytesSync(truncated);
-      await expectLater(ExportCrypto.decryptFile(encrypted: f2, out: back, key: key), throwsA(isA<ExportCorrupted>()));
+      await expectLater(MffCrypto.decryptFile(mff: f2, out: back, key: key), throwsA(isA<MffCorrupted>()));
 
       // 把檔頭的 App 版本改小(想繞過版本檢查)。
       final text = latin1.decode(bytes);
       final tampered = latin1.encode(text.replaceFirst('"app_version":"1.0.0"', '"app_version":"0.0.1"'));
       final f3 = File('${tmp.path}/f3.mff')..writeAsBytesSync(tampered);
-      await expectLater(ExportCrypto.decryptFile(encrypted: f3, out: back, key: key), throwsA(isA<ExportCorrupted>()));
+      await expectLater(MffCrypto.decryptFile(mff: f3, out: back, key: key), throwsA(isA<MffCorrupted>()));
 
-      await expectLater(ExportCrypto.decryptFile(encrypted: encrypted, out: back, key: ExportCrypto.randomBytes(32)), throwsA(isA<ExportCorrupted>()));
+      await expectLater(MffCrypto.decryptFile(mff: mff, out: back, key: MffCrypto.randomBytes(32)), throwsA(isA<MffCorrupted>()));
     });
 
     test('不是匯出檔的檔案', () async {
       final f = File('${tmp.path}/x.zip')..writeAsBytesSync(utf8.encode('PK not ours'));
-      expect(await ExportCrypto.readHeader(f), isNull);
+      expect(await MffCrypto.readHeader(f), isNull);
     });
   });
 

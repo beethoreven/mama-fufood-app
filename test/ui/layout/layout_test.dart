@@ -7,9 +7,9 @@ import '../scenarios.dart';
 /// 1. 版面不能爆掉(文字或元件超出範圍時,Flutter 會報 overflow);
 /// 2. 觸控目標至少 48 dp(Android 的無障礙規範)。
 ///
-/// 想看實際的樣子:`flutter test test/ui/layout --dart-define=MAMA_FUFOOD_SHOTS=true --update-goldens`,
+/// 想看實際的樣子:`flutter test test/ui/layout --dart-define=MFF_SHOTS=true --update-goldens`,
 /// 截圖存到 test/ui/layout/shots/(不進 git)。
-const _shots = bool.fromEnvironment('MAMA_FUFOOD_SHOTS');
+const _shots = bool.fromEnvironment('MFF_SHOTS');
 
 void main() {
   setUpUiTests();

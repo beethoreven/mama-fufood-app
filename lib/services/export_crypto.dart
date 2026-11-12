@@ -13,7 +13,7 @@ import 'package:cryptography/cryptography.dart';
 /// - 每段的隨機數 = 檔頭的 nonce_prefix(8 位元組)+ 段號(4 位元組,大端序)。
 /// - 驗證資料 = 整段檔頭 + 1 個位元組(最後一段是 1,其餘是 0):改了檔頭任何一個字、
 ///   調換或截掉段落,都解不開。
-abstract final class ExportCrypto {
+abstract final class MffCrypto {
   static const magic = 'MAMAFF';
   static const cipherName = 'AES-256-GCM-1MiB';
   static const segment = 1024 * 1024;
@@ -26,7 +26,7 @@ abstract final class ExportCrypto {
   }
 
   /// 檔頭(不加密,都不是個資)。
-  static Uint8List buildHeader(ExportHeader header) {
+  static Uint8List buildHeader(MffHeader header) {
     final json = utf8.encode(jsonEncode(header.toJson()));
     final out = BytesBuilder()
       ..add(ascii.encode(magic))
@@ -36,7 +36,7 @@ abstract final class ExportCrypto {
   }
 
   /// 讀檔頭。開頭不是 MAMAFF 回 null(「這不是媽媽記副食品的匯出檔」)。
-  static Future<(ExportHeader, Uint8List)?> readHeader(File file) async {
+  static Future<(MffHeader, Uint8List)?> readHeader(File file) async {
     final raf = await file.open();
     try {
       final head = await raf.read(10);
@@ -46,7 +46,7 @@ abstract final class ExportCrypto {
       final json = await raf.read(len);
       if (json.length != len) return null;
       try {
-        final header = ExportHeader.fromJson((jsonDecode(utf8.decode(json)) as Map).cast<String, Object?>());
+        final header = MffHeader.fromJson((jsonDecode(utf8.decode(json)) as Map).cast<String, Object?>());
         return (header, Uint8List.fromList([...head, ...json]));
       } catch (_) {
         return null;
@@ -62,7 +62,7 @@ abstract final class ExportCrypto {
   static List<int> _aad(Uint8List header, bool last) => [...header, last ? 1 : 0];
 
   /// 加密 plain(通常是 zip)寫成 .mff。
-  static Future<void> encryptFile({required File plain, required File out, required ExportHeader header, required List<int> key}) async {
+  static Future<void> encryptFile({required File plain, required File out, required MffHeader header, required List<int> key}) async {
     final secret = SecretKey(key);
     final headerBytes = buildHeader(header);
     final prefix = base64.decode(header.noncePrefix);
@@ -91,25 +91,25 @@ abstract final class ExportCrypto {
     }
   }
 
-  /// 解密 .mff 寫成 plain。任何一段解不開丟 ExportCorrupted(「檔案損壞或被改過」)。
-  static Future<void> decryptFile({required File encrypted, required File out, required List<int> key}) async {
-    final parsed = await readHeader(encrypted);
-    if (parsed == null) throw const ExportCorrupted();
+  /// 解密 .mff 寫成 plain。任何一段解不開丟 MffCorrupted(「檔案損壞或被改過」)。
+  static Future<void> decryptFile({required File mff, required File out, required List<int> key}) async {
+    final parsed = await readHeader(mff);
+    if (parsed == null) throw const MffCorrupted();
     final (header, headerBytes) = parsed;
     final secret = SecretKey(key);
     final prefix = Uint8List.fromList(base64.decode(header.noncePrefix));
-    if (prefix.length != 8) throw const ExportCorrupted();
-    final raf = await encrypted.open();
+    if (prefix.length != 8) throw const MffCorrupted();
+    final raf = await mff.open();
     final sink = out.openWrite();
     try {
       final total = await raf.length();
       var pos = headerBytes.length;
       await raf.setPosition(pos);
       var index = 0;
-      if (pos >= total) throw const ExportCorrupted();
+      if (pos >= total) throw const MffCorrupted();
       while (pos < total) {
         final take = min(segment + _tag, total - pos);
-        if (take < _tag) throw const ExportCorrupted();
+        if (take < _tag) throw const MffCorrupted();
         final data = await raf.read(take);
         pos += data.length;
         final last = pos >= total;
@@ -121,7 +121,7 @@ abstract final class ExportCrypto {
           );
           sink.add(clear);
         } on SecretBoxAuthenticationError {
-          throw const ExportCorrupted();
+          throw const MffCorrupted();
         }
         index++;
       }
@@ -133,17 +133,17 @@ abstract final class ExportCrypto {
   }
 }
 
-class ExportHeader {
-  const ExportHeader({
+class MffHeader {
+  const MffHeader({
     required this.formatVersion,
     required this.appVersion,
     required this.exportedAt,
     required this.keyId,
-    this.cipher = ExportCrypto.cipherName,
+    this.cipher = MffCrypto.cipherName,
     required this.noncePrefix,
   });
 
-  factory ExportHeader.fromJson(Map<String, Object?> j) => ExportHeader(
+  factory MffHeader.fromJson(Map<String, Object?> j) => MffHeader(
         formatVersion: j['format_version'] as int,
         appVersion: j['app_version'] as String,
         exportedAt: j['exported_at'] as String,
@@ -169,8 +169,8 @@ class ExportHeader {
       };
 }
 
-class ExportCorrupted implements Exception {
-  const ExportCorrupted();
+class MffCorrupted implements Exception {
+  const MffCorrupted();
 
   @override
   String toString() => '檔案損壞或被修改過，無法匯入。';

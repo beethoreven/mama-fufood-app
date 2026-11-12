@@ -27,7 +27,7 @@ void main() {
   late Directory root;
 
   setUp(() async {
-    root = await Directory.systemTemp.createTemp('mama_fufood_photo_');
+    root = await Directory.systemTemp.createTemp('mff_photo_');
     PathProviderPlatform.instance = _TempPaths(root.path);
   });
 

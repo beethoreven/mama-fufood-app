@@ -48,7 +48,7 @@ class ImportPlan {
   final Directory dir;
   final ParsedExport parsed;
   final List<BabyMatch> matches;
-  final ExportHeader header;
+  final MffHeader header;
 
   List<BabyMatch> get conflicts => matches.where((m) => m.conflict).toList();
 }
@@ -82,14 +82,14 @@ class ImportService {
   }
 
   /// 第 1~2 步:不用登入就能檢查的部分。
-  Future<ExportHeader> checkFile(File file) async {
-    final parsed = await ExportCrypto.readHeader(file);
+  Future<MffHeader> checkFile(File file) async {
+    final parsed = await MffCrypto.readHeader(file);
     if (parsed == null) throw const ImportProblem('這不是媽媽記副食品的匯出檔。');
     final header = parsed.$1;
     if (_cmp(header.appVersion, appVersion()) > 0) {
       throw const ImportProblem('這個檔案是用較新版本的 App 匯出的，請先更新 App 再匯入。');
     }
-    if (header.cipher != ExportCrypto.cipherName) throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
+    if (header.cipher != MffCrypto.cipherName) throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
     return header;
   }
 
@@ -111,8 +111,8 @@ class ImportService {
       progress?.call('解密');
       final zip = File(p.join(dir.path, 'data.zip'));
       try {
-        await ExportCrypto.decryptFile(encrypted: file, out: zip, key: key.bytes);
-      } on ExportCorrupted {
+        await MffCrypto.decryptFile(mff: file, out: zip, key: key.bytes);
+      } on MffCorrupted {
         throw const ImportProblem('檔案損壞或被修改過，無法匯入。');
       }
 
