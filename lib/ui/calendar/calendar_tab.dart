@@ -72,12 +72,17 @@ class _CalendarTabState extends ConsumerState<CalendarTab> with SingleTickerProv
     _offset.value = next.clamp(-_width, _width);
   }
 
-  void _dragEnd() {
+  /// 放手:甩得夠快(而且有移動一小段)就依甩的方向換月;不然要拖過一半寬度才換。velocity 往左是負的。
+  void _dragEnd(double velocity) {
     if (_offset.isAnimating) return;
+    final dx = _offset.value;
+    final flick = velocity.abs() >= Timing.monthFlingVelocity && dx.abs() >= Timing.monthFlingMinDistance;
     final threshold = _width * Timing.monthSwipeFraction;
-    if (_offset.value <= -threshold && !_atEnd) {
+    final toNext = flick ? velocity < 0 : dx <= -threshold;
+    final toPrevious = flick ? velocity > 0 : dx >= threshold;
+    if (toNext && !_atEnd) {
       _shift(1);
-    } else if (_offset.value >= threshold && !_atStart) {
+    } else if (toPrevious && !_atStart) {
       _shift(-1);
     } else {
       _offset.animateTo(0, duration: Timing.monthSlide, curve: Curves.easeOutCubic);
@@ -103,11 +108,11 @@ class _CalendarTabState extends ConsumerState<CalendarTab> with SingleTickerProv
     return LayoutBuilder(builder: (context, constraints) {
       _width = constraints.maxWidth;
       return GestureDetector(
-        // 左右滑動換月:月份跟著手指移動,放手時拖超過一半寬度才換(只看距離,不看甩動速度),
-        // 換的時候這個月滑走、旁邊的月份滑進來;不到一半就滑回原位。
+        // 左右滑動換月:月份跟著手指移動,放手時甩得夠快或拖超過一半寬度就換(規則見 Timing.monthFlingVelocity),
+        // 換的時候這個月滑走、旁邊的月份滑進來;不然就滑回原位。
         onHorizontalDragUpdate: _dragUpdate,
-        onHorizontalDragEnd: (_) => _dragEnd(),
-        onHorizontalDragCancel: _dragEnd,
+        onHorizontalDragEnd: (d) => _dragEnd(d.velocity.pixelsPerSecond.dx),
+        onHorizontalDragCancel: () => _dragEnd(0),
         child: Column(children: [
           _header(context),
           Container(

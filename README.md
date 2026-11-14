@@ -219,7 +219,7 @@ flutter test
 dart run tool/check_version.dart
 ```
 
-- `flutter test` 目前 263 項,其中畫面測試(`test/ui/`)是每個主要畫面 × 三種螢幕 × 兩種字級。
+- `flutter test` 目前 265 項,其中畫面測試(`test/ui/`)是每個主要畫面 × 三種螢幕 × 兩種字級。
 - `tool/check_version.dart` 檢查版本號:App 版本 x.y.z 的 x 在重大修改時升(匯出格式的版本另外記,不必等於 x),Android 版本碼 = x×1000 + y×10 + z。
 
 截圖比對(`test/ui/golden/`)的文字畫成方塊,在不同電腦上畫出來才會一樣。**故意改了版面時**,重新產生截圖、看過再提交:
@@ -498,7 +498,7 @@ flutter test
 dart run tool/check_version.dart
 ```
 
-- `flutter test` currently runs 263 tests; the screen tests (`test/ui/`) cover every main screen × three screen sizes × two text sizes.
+- `flutter test` currently runs 265 tests; the screen tests (`test/ui/`) cover every main screen × three screen sizes × two text sizes.
 - `tool/check_version.dart` checks the version number: the x in app version x.y.z goes up for major changes (the export format has its own version number, which need not equal x), and the Android version code = x×1000 + y×10 + z.
 
 The screenshot comparison (`test/ui/golden/`) draws text as boxes so that different machines render identically. **When you change a layout on purpose**, regenerate the screenshots and review them before committing:

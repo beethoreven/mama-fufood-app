@@ -49,8 +49,17 @@ abstract final class Timing {
   /// 紀錄介面的選單關掉後,再過這段時間「儲存」才有作用(選單開著時也不能存)。
   static const saveUnlockAfterPicker = Duration(milliseconds: 500);
 
-  /// 換月需拖曳超過一半寬度(只看距離,不看甩動速度)。
+  /// 換月:放手時兩個條件擇一就換月,都不滿足就彈回(和 Android ViewPager、Flutter PageView 的慣例一樣)。
+  /// 1. 甩動:橫向速度 ≥ monthFlingVelocity,而且已經移動 ≥ monthFlingMinDistance,依甩的方向換月;
+  ///    最小距離是為了點日期時手滑一下不會換月。
+  /// 2. 慢拖:已經拖過寬度的 monthSwipeFraction,依拖的方向換月。
   static const monthSwipeFraction = 0.5;
+
+  /// 甩動換月的速度門檻(邏輯像素/秒)。
+  static const monthFlingVelocity = 400.0;
+
+  /// 甩動換月至少要移動的距離(邏輯像素)。
+  static const monthFlingMinDistance = 25.0;
 
   /// 換月時舊的月份滑走、新的月份滑進來的時間;放手後回到原位也用這個時間。
   static const monthSlide = Duration(milliseconds: 220);
