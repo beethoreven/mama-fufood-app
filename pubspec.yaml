@@ -2,7 +2,8 @@ name: mama_fufood
 description: "媽媽記副食品:寶寶副食品紀錄"
 publish_to: 'none'
 
-# 版本規則:x.y.z,x 只在匯出格式改變時動。
+# 版本規則:x.y.z,x 在重大修改時升;匯出格式的版本另外記在
+# lib/services/export_format.dart 的 ExportFormat.version,不必等於 x。
 # + 後面是 Android 的版本碼 = x×1000 + y×10 + z(dart run tool/check_version.dart 檢查)。
 version: 2.0.1+2001
 

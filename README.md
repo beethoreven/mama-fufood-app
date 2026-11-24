@@ -31,8 +31,9 @@
 ```
 mama-fufood/                     ← meta-repo,本機開發統一入口,本身不部署
 ├── mama-fufood-app/             ← 本 repo,Flutter Android App,本機打包、用 adb 安裝
-├── mama-fufood-backend/         ← 後端 API,部署到 Render(Flask + gunicorn)
-└── mama-fufood-web/             ← 網站與管理後台,部署到 GitHub Pages
+├── mama-fufood-web/             ← 網站與管理後台,部署到 GitHub Pages
+└── router-backend/              ← 好幾個專案共用的後端,部署到 Render(Flask + gunicorn);
+                                    本專案的程式在 apps/mama_fufood/,網址掛在 /mama-fufood
 ```
 
 Dart 的套件名稱是 `mama_fufood`(程式裡 `package:mama_fufood/...` 的 import),和資料夾名稱不同,因為 Dart 套件名稱只能用小寫字母、數字與底線。
@@ -43,7 +44,7 @@ App 連到的地方:
 |---|---|
 | 手機本機的資料庫(SQLite,用 drift) | 所有紀錄,一定先存這裡;斷網照常使用 |
 | 使用者自己的 Google 雲端硬碟 | 紀錄同步(App 專用區,使用者看不到)、照片(看得到的「媽媽記副食品/照片」資料夾)、匯出檔與它的金鑰 |
-| 後端(`mama-fufood-backend`) | 每天一次的版本與公用資料檢查、意見回饋、匯入舊格式檔時的格式轉換。**不送任何寶寶資料** |
+| 後端(router-backend 的 `/mama-fufood`) | 每天一次的版本與公用資料檢查、意見回饋、匯入舊格式檔時的格式轉換。**不送任何寶寶資料** |
 
 ### 離線優先:紀錄永遠先存在手機
 
@@ -106,7 +107,6 @@ App 連到的地方:
 
 所有套件釘在 2026-10-23 當下的最新正式版(`pubspec.yaml`),Flutter 釘在 3.47.9(2026-11-12 的最新正式版)。例外與原因都寫在 `pubspec.yaml` 旁邊:
 
-- `build_runner` 停在 2.16.2:最新的 2.17.1 需要 `build` 5,但最新的 `drift_dev` 2.35.1 只支援 `build` 4;2.17.0 已被撤回。
 - 不用 `device_info_plus`、`battery_plus`、`connectivity_plus`:後兩者的最新版彼此衝突(都綁了不同版本的 `dbus`),而且需要的欄位只有幾個,改由自己的原生程式取得。
 - `file_picker` 13 的寫法改成靜態的 `FilePicker.pickFiles`(舊的 `FilePicker.platform` 已經沒有了)。
 
@@ -154,8 +154,7 @@ tool/check_version.dart   版本號規則檢查
 
 ### 已知限制
 
-- **Google 登入、每日檢查、雲端同步、照片上雲、匯出與匯入、意見回饋,還沒有在真的 Google Cloud 與後端上跑過**:這些要等 meta repo README 的上線 SOP 做完才能驗證。目前驗證過的是模擬器上的本機功能(月曆、新增與檢視紀錄、統計、食材判斷、設定、寶寶管理、說明頁)和 release 版能正常開啟。
-- iOS 還沒做。目前是 1.x 版,匯出格式是第 1 版(紀錄多了「腹瀉或嘔吐」);上架前的 0.x 版匯出的第 0 版檔案,匯入時由後端轉成第 1 版,所以匯入舊檔需要網路。
+- iOS 還沒做。目前是 2.x 版,匯出格式仍是第 1 版(紀錄多了「腹瀉或嘔吐」);上架前的 0.x 版匯出的第 0 版檔案,匯入時由後端轉成第 1 版,所以匯入舊檔需要網路。
 - 320 dp 寬的小螢幕,月曆格子寬 45.7 dp,不到 48 dp(見上方畫面測試);放三排的格子在大一級字時字比較小,要在實機上再看一次是否看得清楚。
 - release 版不把記錄印到 logcat,要看記錄只能透過意見回饋。
 - 雲端同步以一支手機為主,兩支手機同時改同一筆時會請使用者選擇。
@@ -260,7 +259,7 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 | 欄位 | 必填? | 說明 |
 |---|---|---|
 | `MFF_API_BASE` | **必填**(要用連網功能時) | 後端網址,例如 `https://router-backend-3hl2.onrender.com/mama-fufood`,**結尾不要斜線**。沒填時,檢查更新、意見回饋顯示「這個版本還沒設定後端網址」。 |
-| `MFF_WEB_CLIENT_ID` | **必填**(要用 Google 登入時) | Google Cloud「網頁應用程式」用戶端 ID(和後端的 `GOOGLE_CLIENT_ID` 是同一個)。Android 用戶端的 ID 不用填,Google 用套件名稱加 SHA-1 對應。 |
+| `MFF_WEB_CLIENT_ID` | **必填**(要用 Google 登入時) | Google Cloud「網頁應用程式」用戶端 ID(和後端的 `MAMA_FUFOOD__GOOGLE_CLIENT_ID` 是同一個)。Android 用戶端的 ID 不用填,Google 用套件名稱加 SHA-1 對應。 |
 
 **`android/key.properties`**(不進 git;正式版的簽署金鑰):
 
@@ -310,8 +309,9 @@ The whole project is a git meta-repo (`mama-fufood`) that wraps three independen
 ```
 mama-fufood/                     ← meta-repo, unified local-dev entry point, never deployed itself
 ├── mama-fufood-app/             ← this repo, Flutter Android app, built locally and installed via adb
-├── mama-fufood-backend/         ← backend API, deployed to Render (Flask + gunicorn)
-└── mama-fufood-web/             ← website and admin console, deployed to GitHub Pages
+├── mama-fufood-web/             ← website and admin console, deployed to GitHub Pages
+└── router-backend/              ← backend shared by several projects, deployed to Render (Flask + gunicorn);
+                                    this project's code is in apps/mama_fufood/, mounted at /mama-fufood
 ```
 
 The Dart package name is `mama_fufood` (the `package:mama_fufood/...` imports in the code), different from the folder name, because Dart package names may only use lowercase letters, digits and underscores.
@@ -322,7 +322,7 @@ What the app talks to:
 |---|---|
 | The phone's local database (SQLite via drift) | Every record is always saved here first; works fully offline |
 | The user's own Google Drive | Record sync (the app-only area, invisible to the user), photos (the visible "媽媽記副食品/照片" folder), export files and their key |
-| The backend (`mama-fufood-backend`) | The once-a-day version and public-data check, feedback, and format conversion when importing an old-format file. **No baby data is ever sent** |
+| The backend (router-backend's `/mama-fufood`) | The once-a-day version and public-data check, feedback, and format conversion when importing an old-format file. **No baby data is ever sent** |
 
 ### Offline First: Records Always Live on the Phone First
 
@@ -385,7 +385,6 @@ The release signing key is critical: **once a build is installed on a phone, eve
 
 Every package is pinned to the latest stable release as of 2026-10-23 (`pubspec.yaml`), and Flutter is pinned to 3.47.9 (the latest stable release as of 2026-11-12). The exceptions and their reasons are written next to them in `pubspec.yaml`:
 
-- `build_runner` stays at 2.16.2: the latest 2.17.1 needs `build` 5, but the latest `drift_dev` 2.35.1 only supports `build` 4; 2.17.0 was retracted.
 - No `device_info_plus`, `battery_plus` or `connectivity_plus`: the latest versions of the last two conflict (they pin different `dbus` versions), and only a few fields are needed, so the app's own native code reads them.
 - `file_picker` 13 is used through the static `FilePicker.pickFiles` (the old `FilePicker.platform` is gone).
 
@@ -433,8 +432,7 @@ tool/check_version.dart   version-number rule check
 
 ### Known Limitations
 
-- **Google sign-in, the daily check, cloud sync, photo upload, export and import, and feedback have not run against a real Google Cloud project and backend yet**: they can only be verified once the meta repo README's Setup Guide is done. What has been verified is the local functionality on an emulator (calendar, adding and viewing records, statistics, food judgement, settings, baby management, the guide pages) and that the release build launches normally.
-- iOS isn't done yet. This is the 1.x line with export format 1 (records gained a "diarrhea or vomiting" field); format-0 files exported by the pre-release 0.x line are converted to format 1 by the backend on import, so importing an old file needs a network connection.
+- iOS isn't done yet. This is the 2.x line, still on export format 1 (records gained a "diarrhea or vomiting" field); format-0 files exported by the pre-release 0.x line are converted to format 1 by the backend on import, so importing an old file needs a network connection.
 - On a 320 dp wide screen, calendar cells are 45.7 dp wide, under 48 dp (see the screen tests above); cells with three rows use small text at the larger text size — worth checking on a real phone for legibility.
 - Release builds don't print logs to logcat; logs can only be seen through feedback.
 - Cloud sync is designed around one main phone; when two phones change the same record at the same time, the user is asked to choose.
@@ -539,7 +537,7 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 | Field | Required? | Description |
 |---|---|---|
 | `MFF_API_BASE` | **Required** (for online features) | The backend URL, e.g. `https://router-backend-3hl2.onrender.com/mama-fufood`, **no trailing slash**. Without it, update checks and feedback show "這個版本還沒設定後端網址" (this build has no backend URL configured). |
-| `MFF_WEB_CLIENT_ID` | **Required** (for Google sign-in) | The Google Cloud "Web application" client ID (the same one as the backend's `GOOGLE_CLIENT_ID`). The Android client's ID isn't entered anywhere — Google matches it by package name plus SHA-1. |
+| `MFF_WEB_CLIENT_ID` | **Required** (for Google sign-in) | The Google Cloud "Web application" client ID (the same one as the backend's `MAMA_FUFOOD__GOOGLE_CLIENT_ID`). The Android client's ID isn't entered anywhere — Google matches it by package name plus SHA-1. |
 
 **`android/key.properties`** (not in git; the release signing key):
 
