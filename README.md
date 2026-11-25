@@ -105,7 +105,7 @@ App 連到的地方:
 
 ### 套件版本的取捨
 
-所有套件釘在 2026-10-23 當下的最新正式版(`pubspec.yaml`),Flutter 釘在 3.47.9(2026-11-12 的最新正式版)。例外與原因都寫在 `pubspec.yaml` 旁邊:
+所有套件釘在 2026-11-26 當下的最新正式版(`pubspec.yaml`),Flutter 釘在 3.50.1(2026-11-26 的最新正式版)。例外與原因都寫在 `pubspec.yaml` 旁邊:
 
 - 不用 `device_info_plus`、`battery_plus`、`connectivity_plus`:後兩者的最新版彼此衝突(都綁了不同版本的 `dbus`),而且需要的欄位只有幾個,改由自己的原生程式取得。
 - `file_picker` 13 的寫法改成靜態的 `FilePicker.pickFiles`(舊的 `FilePicker.platform` 已經沒有了)。
@@ -166,15 +166,15 @@ tool/check_version.dart   版本號規則檢查
 
 ## Part A. 開發環境
 
-### 1. 安裝 Flutter 3.47.9
+### 1. 安裝 Flutter 3.50.1
 
-這個 repo 釘在 Flutter **3.47.9**(`pubspec.yaml` 的 `environment.flutter`)。照 [Flutter 官方的 macOS 安裝說明](https://docs.flutter.dev/get-started/install/macos) 裝到 `~/development/flutter`,切到這個版本,然後讓終端機找得到它:
+這個 repo 釘在 Flutter **3.50.1**(`pubspec.yaml` 的 `environment.flutter`)。照 [Flutter 官方的 macOS 安裝說明](https://docs.flutter.dev/get-started/install/macos) 裝到 `~/development/flutter`,切到這個版本,然後讓終端機找得到它:
 
 ```bash
 echo 'export PATH="$HOME/development/flutter/bin:$PATH"' >> ~/.zshrc
 ```
 
-關掉終端機再打開,執行 `flutter --version`,應該顯示 3.47.9。
+關掉終端機再打開,執行 `flutter --version`,應該顯示 3.50.1。
 
 ### 2. 安裝 Android SDK 與模擬器
 
@@ -268,7 +268,7 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 | `storePassword` | 金鑰庫的密碼 |
 | `keyPassword` | 金鑰的密碼(用 `keytool` 建立時通常和上面一樣) |
 | `keyAlias` | 金鑰的別名,例如 `upload` |
-| `storeFile` | 金鑰檔的**完整路徑**,例如 `/Users/<你的帳號>/Keys/mama-fufood/upload-keystore.jks` |
+| `storeFile` | 金鑰檔的**完整路徑**,例如 `/Users/<你的帳號>/Keys/mama-fufood/upload-keystore-2026.jks` |
 
 **環境變數:**
 
@@ -383,7 +383,7 @@ The release signing key is critical: **once a build is installed on a phone, eve
 
 ### Dependency Version Trade-offs
 
-Every package is pinned to the latest stable release as of 2026-10-23 (`pubspec.yaml`), and Flutter is pinned to 3.47.9 (the latest stable release as of 2026-11-12). The exceptions and their reasons are written next to them in `pubspec.yaml`:
+Every package is pinned to the latest stable release as of 2026-11-26 (`pubspec.yaml`), and Flutter is pinned to 3.50.1 (the latest stable release as of 2026-11-26). The exceptions and their reasons are written next to them in `pubspec.yaml`:
 
 - No `device_info_plus`, `battery_plus` or `connectivity_plus`: the latest versions of the last two conflict (they pin different `dbus` versions), and only a few fields are needed, so the app's own native code reads them.
 - `file_picker` 13 is used through the static `FilePicker.pickFiles` (the old `FilePicker.platform` is gone).
@@ -444,15 +444,15 @@ tool/check_version.dart   version-number rule check
 
 ## Part A. Development Environment
 
-### 1. Install Flutter 3.47.9
+### 1. Install Flutter 3.50.1
 
-This repo is pinned to Flutter **3.47.9** (`environment.flutter` in `pubspec.yaml`). Follow [Flutter's official macOS install guide](https://docs.flutter.dev/get-started/install/macos) to install it into `~/development/flutter`, switch to this version, then make the terminal find it:
+This repo is pinned to Flutter **3.50.1** (`environment.flutter` in `pubspec.yaml`). Follow [Flutter's official macOS install guide](https://docs.flutter.dev/get-started/install/macos) to install it into `~/development/flutter`, switch to this version, then make the terminal find it:
 
 ```bash
 echo 'export PATH="$HOME/development/flutter/bin:$PATH"' >> ~/.zshrc
 ```
 
-Close and reopen the terminal and run `flutter --version`; it should print 3.47.9.
+Close and reopen the terminal and run `flutter --version`; it should print 3.50.1.
 
 ### 2. Install the Android SDK and an Emulator
 
@@ -546,7 +546,7 @@ adb install -r build/app/outputs/flutter-apk/app-release.apk
 | `storePassword` | The keystore password |
 | `keyPassword` | The key password (usually the same as above when created with `keytool`) |
 | `keyAlias` | The key alias, e.g. `upload` |
-| `storeFile` | The **full path** to the keystore file, e.g. `/Users/<your account>/Keys/mama-fufood/upload-keystore.jks` |
+| `storeFile` | The **full path** to the keystore file, e.g. `/Users/<your account>/Keys/mama-fufood/upload-keystore-2026.jks` |
 
 **Environment variables:**
 
