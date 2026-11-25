@@ -47,12 +47,14 @@ void main() {
     await check.maybeRun();
     expect(await check.forceUpdate(), isNotNull, reason: '門檻 1.0.0,0.1.0 被擋');
     expect(await store.getSetting(CheckKeys.lastOkDay), '${TimeRules.taipeiToday()}');
+    expect(await store.getSetting(CheckKeys.forceAt), isNotNull, reason: '記下伺服器確認的時間');
 
     // 後台把門檻改成 0.1.0。同一天再開 App:被擋住的狀態要重新檢查,而且解除。
     minVersion = '0.1.0';
     await check.maybeRun();
     expect(calls, 2);
     expect(await check.forceUpdate(), isNull);
+    expect(await store.getSetting(CheckKeys.forceAt), isNull);
 
     // 沒被擋住時,同一天不再重複檢查。
     await check.maybeRun();
@@ -84,6 +86,72 @@ void main() {
     expect(await check.run(), contains('登入已過期'));
     expect(calls, 0);
     expect(await store.getSetting(CheckKeys.failCount), isNull);
+  });
+
+  test('強制更新的旗標：伺服器 7 天沒再確認就不擋；沒有確認時間的舊旗標從開 App 起算', () async {
+    final now = DateTime(2026, 11, 26, 12);
+    TimeRules.now = () => now;
+    addTearDown(() => TimeRules.now = DateTime.now);
+    String ago(Duration d) => '${now.subtract(d).millisecondsSinceEpoch}';
+    bool blocks(String version, String? min, String? at) =>
+        DailyCheckService.blocks(appVersion: version, minVersion: min, confirmedAt: at);
+    expect(blocks('2.0.1', '2.1.0', ago(const Duration(days: 6, hours: 23))), isTrue);
+    expect(blocks('2.0.1', '2.1.0', ago(const Duration(days: 7))), isFalse);
+    expect(blocks('2.0.1', '2.1.0', null), isTrue, reason: '舊旗標照樣擋');
+    expect(blocks('2.1.0', '2.1.0', ago(Duration.zero)), isFalse);
+    expect(blocks('2.0.1', null, null), isFalse);
+
+    // 舊旗標:開 App 時從現在起算(沒登入也算)。
+    final store = Store(AppDb(NativeDatabase.memory()));
+    addTearDown(store.db.close);
+    final auth = AuthService(StoreAuthStorage(store));
+    await auth.init();
+    final api = ApiClient(auth, baseUrl: 'https://backend.test', client: MockClient((_) async => http.Response('{}', 500)));
+    final check = DailyCheckService(store: store, auth: auth, api: api, appVersion: () => '2.0.1');
+    await store.setSetting(CheckKeys.forceMin, '2.1.0');
+    await check.maybeRun();
+    expect(await store.getSetting(CheckKeys.forceAt), '${now.millisecondsSinceEpoch}');
+    expect(await check.forceUpdate(), isNotNull);
+
+    // 之後 7 天都沒有確認:不再擋。
+    TimeRules.now = () => now.add(const Duration(days: 7));
+    expect(await check.forceUpdate(), isNull);
+  });
+
+  test('「前往更新」只打開 App 自己的 GitHub Release 或網站', () {
+    for (final ok in [
+      'https://github.com/beethoreven/mama-fufood-app/releases/latest',
+      'https://github.com/beethoreven/mama-fufood-app/releases/download/v2.1.0/mama-fufood-2.1.0.apk',
+      'https://github.com/beethoreven/mama-fufood-app/releases',
+      'https://mama-fufood.github.io/mama-fufood-web/',
+      'https://MAMA-FUFOOD.github.io/mama-fufood-web/?tab=download',
+      ' https://mama-fufood.github.io/mama-fufood-web ',
+    ]) {
+      expect(UpdateLinks.allowed(ok), isTrue, reason: ok);
+      expect(UpdateLinks.target(ok), ok.trim(), reason: ok);
+    }
+    for (final bad in [
+      'http://mama-fufood.github.io/mama-fufood-web/',
+      'https://mama-fufood.github.io/',
+      'https://mama-fufood.github.io/mama-fufood-web-evil/',
+      'https://mama-fufood.github.io/mama-fufood-web/../other/',
+      'https://mama-fufood.github.io/mama-fufood-web/%2e%2e/other/',
+      'https://github.com/beethoreven/mama-fufood-app/issues/1',
+      'https://github.com/beethoreven/mama-fufood-app',
+      'https://github.com/someone-else/mama-fufood-app/releases',
+      'https://github.com/beethoreven/mama-fufood-app-evil/releases',
+      'https://github.com.evil.example/beethoreven/mama-fufood-app/releases',
+      'https://mama-fufood.github.io.evil.example/mama-fufood-web/',
+      'https://mama-fufood.github.io@example.com/mama-fufood-web/', // 真正的主機是 example.com
+      'https://:@mama-fufood.github.io/mama-fufood-web/',
+      'https://mama-fufood.github.io:8443/mama-fufood-web/',
+      'https://example.com/mama-fufood.apk',
+      '',
+      'not a url',
+    ]) {
+      expect(UpdateLinks.allowed(bad), isFalse, reason: bad);
+      expect(UpdateLinks.target(bad), UpdateLinks.website, reason: bad);
+    }
   });
 
   test('收到不合規則的公用資料：不存，照實告訴使用者，這次檢查仍算成功（同一天不再重試）', () async {

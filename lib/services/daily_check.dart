@@ -19,7 +19,32 @@ abstract final class CheckKeys {
   static const forceMin = 'force_min_version';
   static const forceReason = 'force_reason';
   static const forceUrl = 'force_url';
+  /// 伺服器最後一次確認「要強制更新」的時間(毫秒),見 DailyCheckService.blocks。
+  static const forceAt = 'force_confirmed_at';
   static const notice = 'dataset_notice';
+}
+
+/// 強制更新畫面的「前往更新」能打開的網址。更新網址是後端給的;後端被入侵時,不能讓它把所有人
+/// 帶去別人的下載頁,所以只打開 App 自己的 GitHub Release 或網站,其他網址(或沒給)一律改開網站。
+abstract final class UpdateLinks {
+  /// 網站,首頁有「下載最新版」。mama-fufood.github.io 根網域本身沒有網頁,網址要帶 repo 的路徑。
+  static const website = 'https://mama-fufood.github.io/mama-fufood-web/';
+
+  static bool allowed(String url) {
+    final uri = Uri.tryParse(url.trim());
+    if (uri == null || uri.scheme != 'https' || uri.hasPort || uri.userInfo.isNotEmpty) return false;
+    if (uri.pathSegments.any((s) => s == '.' || s == '..')) return false;
+    final host = uri.host.toLowerCase();
+    final path = uri.path.toLowerCase();
+    bool under(String prefix) => path == prefix || path.startsWith('$prefix/');
+    if (host == 'mama-fufood.github.io') return under('/mama-fufood-web');
+    // 只收 Release 的頁面與檔案:同一個 repo 的 issue 頁誰都能留言、附檔。
+    if (host == 'github.com') return under('/beethoreven/mama-fufood-app/releases');
+    return false;
+  }
+
+  /// 「前往更新」實際打開的網址。
+  static String target(String url) => allowed(url) ? url.trim() : website;
 }
 
 class ForceUpdate {
@@ -52,10 +77,22 @@ class DailyCheckService extends ChangeNotifier {
     return 0;
   }
 
-  /// 目前的版本比後台設定的最低可用版本舊 → 強制更新(畫面寫明原因)。
+  /// 現在要不要被強制更新擋住:目前的版本比後台設定的最低可用版本舊,而且伺服器最近
+  /// [Timing.forceUpdateExpiry] 內還確認過。這段時間都沒有再確認(例如後端關掉、一直連不上)就不再擋;
+  /// 之後檢查成功、伺服器還是說要更新,就會再擋。
+  /// 沒有確認時間的旗標(加上這個期限之前存的)照樣擋,確認時間從下一次 [maybeRun] 起算。
+  static bool blocks({required String appVersion, required String? minVersion, required String? confirmedAt}) {
+    if (minVersion == null || compareVersions(appVersion, minVersion) >= 0) return false;
+    final at = int.tryParse(confirmedAt ?? '');
+    if (at == null) return true;
+    return TimeRules.now().millisecondsSinceEpoch - at < Timing.forceUpdateExpiry.inMilliseconds;
+  }
+
+  /// 要擋就回傳強制更新的內容(畫面寫明原因),不用擋是 null。
   Future<ForceUpdate?> forceUpdate() async {
     final min = await store.getSetting(CheckKeys.forceMin);
-    if (min == null || compareVersions(appVersion(), min) >= 0) return null;
+    final at = await store.getSetting(CheckKeys.forceAt);
+    if (min == null || !blocks(appVersion: appVersion(), minVersion: min, confirmedAt: at)) return null;
     return ForceUpdate(
       minVersion: min,
       reason: await store.getSetting(CheckKeys.forceReason) ?? '',
@@ -65,6 +102,13 @@ class DailyCheckService extends ChangeNotifier {
 
   /// 開 App 或回到前景時呼叫。
   Future<void> maybeRun() async {
+    // 加上期限之前存的旗標沒有確認時間:從現在起算(沒登入也要算,不然永遠不會過期)。
+    final min = await store.getSetting(CheckKeys.forceMin);
+    if (min != null && await store.getSetting(CheckKeys.forceAt) == null) {
+      await store.setSetting(CheckKeys.forceAt, '${TimeRules.now().millisecondsSinceEpoch}');
+    } else if (min != null && compareVersions(appVersion(), min) < 0 && await forceUpdate() == null) {
+      AppLog.info('force_update.expired');
+    }
     // 登入已過期時不自動檢查(一定失敗,還會用掉重試次數);重新登入之後就會恢復。
     if (!api.configured || auth.state != AuthState.signedIn) return;
     final today = '${TimeRules.taipeiToday()}';
@@ -128,8 +172,10 @@ class DailyCheckService extends ChangeNotifier {
         await store.setSetting(CheckKeys.forceMin, res['min_app_version'] as String?);
         await store.setSetting(CheckKeys.forceReason, res['force_reason'] as String? ?? '');
         await store.setSetting(CheckKeys.forceUrl, res['update_url'] as String? ?? '');
+        await store.setSetting(CheckKeys.forceAt, '${TimeRules.now().millisecondsSinceEpoch}');
       } else {
         await store.setSetting(CheckKeys.forceMin, null);
+        await store.setSetting(CheckKeys.forceAt, null);
       }
       await store.setSetting(CheckKeys.lastOkDay, today);
       await store.setSetting(CheckKeys.lastAt, '${DateTime.now().millisecondsSinceEpoch}');

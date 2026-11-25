@@ -15,7 +15,10 @@ import '../widgets/common.dart';
 
 /// 匯入/匯出。需要登入 Google 與雲端硬碟權限。
 class ImportExportPage extends ConsumerStatefulWidget {
-  const ImportExportPage({super.key});
+  const ImportExportPage({super.key, this.exportOnly = false});
+
+  /// 只顯示匯出(強制更新畫面用:匯入舊格式時會把紀錄送到後端轉換)。
+  final bool exportOnly;
 
   @override
   ConsumerState<ImportExportPage> createState() => _ImportExportPageState();
@@ -44,20 +47,22 @@ class _ImportExportPageState extends ConsumerState<ImportExportPage> {
           FilledButton.icon(onPressed: _busy ? null : _export, icon: const Icon(Icons.upload_rounded), label: const Text('匯出')),
         ]),
       ),
-      const SizedBox(height: 12),
-      AppCard(
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('匯入', style: t.titleSmall),
-          const SizedBox(height: 6),
-          Text('選一個本 App 的匯出檔（.mff）。要用匯出時的 Google 帳號登入。同名的寶寶如果資料不一樣，'
-              '可以選保留手機上的資料或用匯入檔取代；不同名的寶寶會新增。', style: t.bodyMedium),
-          const SizedBox(height: 6),
-          Text('匯入前會先關閉「紀錄與雲端同步」與「照片存到雲端」。匯入完成後請自行重新開啟，App 會再處理與雲端資料的差異。',
-              style: t.bodySmall!.copyWith(color: c.warn)),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(onPressed: _busy ? null : _import, icon: const Icon(Icons.download_rounded), label: const Text('匯入')),
-        ]),
-      ),
+      if (!widget.exportOnly) ...[
+        const SizedBox(height: 12),
+        AppCard(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('匯入', style: t.titleSmall),
+            const SizedBox(height: 6),
+            Text('選一個本 App 的匯出檔（.mff）。要用匯出時的 Google 帳號登入。同名的寶寶如果資料不一樣，'
+                '可以選保留手機上的資料或用匯入檔取代；不同名的寶寶會新增。', style: t.bodyMedium),
+            const SizedBox(height: 6),
+            Text('匯入前會先關閉「紀錄與雲端同步」與「照片存到雲端」。匯入完成後請自行重新開啟，App 會再處理與雲端資料的差異。',
+                style: t.bodySmall!.copyWith(color: c.warn)),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(onPressed: _busy ? null : _import, icon: const Icon(Icons.download_rounded), label: const Text('匯入')),
+          ]),
+        ),
+      ],
       if (_busy) ...[
         const SizedBox(height: 16),
         Row(mainAxisAlignment: MainAxisAlignment.center, children: [

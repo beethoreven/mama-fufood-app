@@ -78,6 +78,9 @@ abstract final class Timing {
   static const dailyCheckRetryGap = Duration(hours: 2);
   static const dailyCheckRetriesPerDay = 5;
 
+  /// 強制更新的旗標:伺服器這麼久都沒有再確認「要更新」(例如後端關掉、一直連不上),就不再擋。
+  static const forceUpdateExpiry = Duration(days: 7);
+
   /// 本機診斷記錄只保留一週、記錄檔 2 MB 上限(第 10 節)。
   static const logRetention = Duration(days: 7);
   static const logMaxBytes = 2 * 1024 * 1024;

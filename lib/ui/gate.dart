@@ -12,6 +12,8 @@ import 'first_run/first_baby_page.dart';
 import 'first_run/principles_page.dart';
 import 'flows.dart';
 import 'more/feedback_page.dart';
+import 'more/import_export_page.dart';
+import 'more/text_pages.dart';
 import 'shell.dart';
 import 'theme.dart';
 import 'widgets/common.dart';
@@ -126,9 +128,11 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
         },
       );
     }
-    // 3. 強制更新(只對有網路且有做版本檢查的手機生效)。
-    final min = settings.raw[CheckKeys.forceMin];
-    if (min != null && DailyCheckService.compareVersions(services.appVersion, min) < 0) {
+    // 3. 強制更新(只對有網路且有做版本檢查的手機生效;伺服器 7 天沒再確認就不擋,見 DailyCheckService.blocks)。
+    if (DailyCheckService.blocks(
+        appVersion: services.appVersion,
+        minVersion: settings.raw[CheckKeys.forceMin],
+        confirmedAt: settings.raw[CheckKeys.forceAt])) {
       return _ForceUpdatePage(reason: settings.raw[CheckKeys.forceReason] ?? '', url: settings.raw[CheckKeys.forceUrl] ?? '');
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -151,6 +155,11 @@ class _AppGateState extends ConsumerState<AppGate> with WidgetsBindingObserver {
 ///
 /// 被擋住時主畫面不會載入,所以這裡自己準備登入狀態並重新檢查一次:後台調低門檻之後,
 /// 使用者不用等到隔天、也不用重裝就能繼續用。也可以手動按「重新檢查」。
+///
+/// ★ 門檻與更新網址都是後端給的。為了不讓被入侵的後端把人鎖在自己的紀錄外面,或帶去別人的下載頁:
+///   - 這一頁一定能匯出。匯出直接存到使用者自己的雲端硬碟,不經過我們的後端。不放匯入:
+///     匯入舊格式的檔案時,要把紀錄送到後端轉換。
+///   - 「前往更新」只打開 App 自己的 GitHub Release 或網站(UpdateLinks),其他網址改開網站。
 class _ForceUpdatePage extends ConsumerStatefulWidget {
   const _ForceUpdatePage({required this.reason, required this.url});
 
@@ -189,11 +198,25 @@ class _ForceUpdatePageState extends ConsumerState<_ForceUpdatePage> {
     }
   }
 
+  void _openUpdate() {
+    final url = widget.url;
+    if (url.isNotEmpty && !UpdateLinks.allowed(url)) {
+      AppLog.warn('force_update.url_refused');
+      toast(context, '更新網址不對，改開媽媽記副食品的網站');
+    }
+    openLink(context, UpdateLinks.target(url));
+  }
+
+  void _openExport() {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => Scaffold(appBar: AppBar(title: const Text('匯出紀錄')), body: const ImportExportPage(exportOnly: true)),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final reason = widget.reason;
-    final url = widget.url;
     return PopScope(
       canPop: false,
       child: Scaffold(
@@ -209,14 +232,26 @@ class _ForceUpdatePageState extends ConsumerState<_ForceUpdatePage> {
                 Text('原因：$reason', style: t.bodyLarge),
               ],
               const SizedBox(height: 16),
-              Text(url.isEmpty ? '請向提供 App 的人取得新版本。' : '新版本：$url', style: t.bodyMedium),
+              Text('手機上的紀錄不會受影響，更新前也可以先匯出。', style: t.bodyMedium),
               const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: _openUpdate,
+                icon: const Icon(Icons.open_in_new_rounded),
+                label: const Text('前往更新'),
+              ),
+              const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: _checking ? null : _recheck,
                 icon: _checking
                     ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.refresh_rounded),
                 label: const Text('重新檢查'),
+              ),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: _openExport,
+                icon: const Icon(Icons.upload_rounded),
+                label: const Text('匯出紀錄'),
               ),
             ]),
           ),
