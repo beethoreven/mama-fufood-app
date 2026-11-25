@@ -99,18 +99,26 @@ class DailyCheckService extends ChangeNotifier {
       }
       final res = await api.check(appVersion: appVersion(), datasets: datasets);
       var updated = 0;
+      var rejected = 0;
       final results = (res['datasets'] as Map? ?? const {}).cast<String, Object?>();
       String? notice;
       for (final e in results.entries) {
         final info = (e.value as Map).cast<String, Object?>();
         if (info['status'] == 'updated' && info['content'] is Map) {
-          final applied = await source.apply(DatasetEnvelope(
-            name: e.key,
-            version: info['version'] as String,
-            formatVersion: info['format_version'] as int,
-            content: (info['content'] as Map).cast<String, dynamic>(),
-          ));
-          if (applied) updated++;
+          final version = info['version'], format = info['format_version'];
+          final DatasetApply result;
+          if (version is String && format is int) {
+            result = await source.apply(DatasetEnvelope(
+                name: e.key,
+                version: version,
+                formatVersion: format,
+                content: (info['content'] as Map).cast<String, dynamic>()));
+          } else {
+            AppLog.warn('catalog.rejected', {'dataset': e.key, 'problem': 'envelope', 'n': 1});
+            result = DatasetApply.rejected;
+          }
+          if (result == DatasetApply.applied) updated++;
+          if (result == DatasetApply.rejected) rejected++;
         } else if (info['status'] == 'app_update_required') {
           notice = res['notice'] as String? ?? 'App 有重大更新，更新後才能抓新的清單。';
         }
@@ -130,9 +138,11 @@ class DailyCheckService extends ChangeNotifier {
       final renewed = res['session_token'];
       final renewedExp = res['session_expires_at'];
       if (renewed is String && renewedExp is int) await auth.renewBackendToken(renewed, renewedExp);
-      AppLog.info('check.ok', {'updated': updated, 'force': res['force_update'] == true});
+      AppLog.info('check.ok', {'updated': updated, 'rejected': rejected, 'force': res['force_update'] == true});
       notifyListeners();
       if (notice != null) return notice;
+      // 不合規則的內容沒有存。這次檢查還是算成功:同一天再試,拿到的也是同一份。
+      if (rejected > 0) return '收到的公用資料有問題，先繼續用手機上的清單';
       return updated > 0 ? '已更新公用資料' : '公用資料已是最新';
     } on ApiError catch (e) {
       AppLog.warn('check.failed', {'status': e.status, 'code': e.code});

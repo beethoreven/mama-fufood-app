@@ -31,8 +31,11 @@ abstract final class Limits {
   static const feedbackQueueDays = 30;
   static const feedbackRetriesPerDay = 5;
 
-  /// 食材名稱一律 3 個字以內(月曆每排放 emoji 加名稱)。後台會檢查,App 只用來排版。
+  /// 公用資料的名稱字數上限,和後台的檢查一樣;App 收到新的公用資料時也照這些檢查(DatasetRules)。
+  /// 食材一律 3 個字以內(月曆每排放 emoji 加名稱)。
   static const foodNameMaxChars = 3;
+  static const groupNameMaxChars = 6;
+  static const unitNameMaxChars = 4;
 }
 
 abstract final class Timing {

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -83,5 +84,42 @@ void main() {
     expect(await check.run(), contains('登入已過期'));
     expect(calls, 0);
     expect(await store.getSetting(CheckKeys.failCount), isNull);
+  });
+
+  test('收到不合規則的公用資料：不存，照實告訴使用者，這次檢查仍算成功（同一天不再重試）', () async {
+    final store = Store(AppDb(NativeDatabase.memory()));
+    addTearDown(store.db.close);
+    await store.setSetting('auth_user', jsonEncode({'sub': 'u1', 'email': 'mom@example.com'}));
+    await store.setSetting('auth_app_token', 'mff1.x.y');
+    await store.setSetting('auth_app_token_exp', '${DateTime.now().add(const Duration(days: 100)).millisecondsSinceEpoch ~/ 1000}');
+    final auth = AuthService(StoreAuthStorage(store));
+    await auth.init();
+
+    // 少了一種食材(ID 永遠不可刪);單位的版本不是文字。
+    final foods = (jsonDecode(File('assets/datasets/food_list.json').readAsStringSync()) as Map)['content'] as Map;
+    (foods['foods'] as List).removeLast();
+    final units = (jsonDecode(File('assets/datasets/units.json').readAsStringSync()) as Map)['content'];
+    final api = ApiClient(auth, baseUrl: 'https://backend.test', client: MockClient((req) async {
+      return http.Response(
+          jsonEncode({
+            'min_app_version': '0.1.0',
+            'force_update': false,
+            'force_reason': '',
+            'update_url': '',
+            'checks_left': 9,
+            'datasets': {
+              'food_list': {'status': 'updated', 'version': '20991231000000', 'format_version': 1, 'content': foods},
+              'units': {'status': 'updated', 'version': 20991231000000, 'format_version': 1, 'content': units},
+            },
+          }),
+          200,
+          headers: {'content-type': 'application/json'});
+    }));
+    final check = DailyCheckService(store: store, auth: auth, api: api, appVersion: () => '0.1.0');
+
+    expect(await check.run(), '收到的公用資料有問題，先繼續用手機上的清單');
+    expect(await store.getDataset('food_list'), isNull);
+    expect(await store.getDataset('units'), isNull);
+    expect(await store.getSetting(CheckKeys.lastOkDay), '${TimeRules.taipeiToday()}');
   });
 }
