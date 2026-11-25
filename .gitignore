@@ -64,3 +64,6 @@ failures/
 key.properties
 *.jks
 *.keystore
+
+# FVM Version Cache
+.fvm/

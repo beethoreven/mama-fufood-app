@@ -166,19 +166,22 @@ tool/check_version.dart   版本號規則檢查
 
 ## Part A. 開發環境
 
-### 1. 安裝 Flutter 3.50.1
+### 1. 安裝 Flutter 3.50.1(用 FVM)
 
-這個 repo 釘在 Flutter **3.50.1**(`pubspec.yaml` 的 `environment.flutter`)。照 [Flutter 官方的 macOS 安裝說明](https://docs.flutter.dev/get-started/install/macos) 裝到 `~/development/flutter`,切到這個版本,然後讓終端機找得到它:
+這個 repo 釘在 Flutter **3.50.1**(`.fvmrc`,`pubspec.yaml` 的 `environment.flutter` 也是同一版)。Flutter 用 [FVM](https://fvm.app/) 管理:每個專案用自己 `.fvmrc` 寫的版本,電腦上其他 Flutter 專案用別的版本也不會互相影響。下面的指令一律寫成 `fvm flutter …`、`fvm dart …`。
+
+1. 裝 FVM(擇一):`brew tap leoafarias/fvm && brew install fvm`,或已經有 Dart 的話 `dart pub global activate fvm`(這種裝法要把 `~/.pub-cache/bin` 加進 PATH)。
+2. 在這個資料夾下載並啟用 `.fvmrc` 寫的版本:
 
 ```bash
-echo 'export PATH="$HOME/development/flutter/bin:$PATH"' >> ~/.zshrc
+fvm install
 ```
 
-關掉終端機再打開,執行 `flutter --version`,應該顯示 3.50.1。
+**確認**:`fvm flutter --version` 顯示 3.50.1。`.fvm/` 是 FVM 自動建立的捷徑,已經在 `.gitignore` 裡。
 
 ### 2. 安裝 Android SDK 與模擬器
 
-裝 [Android Studio](https://developer.android.com/studio),在 **SDK Manager** 裝好 Android SDK、Platform Tools(裡面有 `adb`)與一個模擬器映像檔,然後執行 `flutter doctor`,照它的提示補齊(例如 `flutter doctor --android-licenses`)。
+裝 [Android Studio](https://developer.android.com/studio),在 **SDK Manager** 裝好 Android SDK、Platform Tools(裡面有 `adb`)與一個模擬器映像檔,然後執行 `fvm flutter doctor`,照它的提示補齊(例如 `fvm flutter doctor --android-licenses`)。
 
 模擬器要用 `-gpu host` 開視窗(無頭模式畫不出第一個畫面):
 
@@ -190,14 +193,14 @@ echo 'export PATH="$HOME/development/flutter/bin:$PATH"' >> ~/.zshrc
 
 ```bash
 cd mama-fufood-app
-flutter pub get
-flutter run
+fvm flutter pub get
+fvm flutter run
 ```
 
 這樣跑起來的 App 可以在手機上記錄,但登入、檢查更新、意見回饋會顯示「還沒設定」。要連上後端與 Google 登入,先照 Part D 建立 `env/prod.json`,再:
 
 ```bash
-flutter run --dart-define-from-file=env/prod.json
+fvm flutter run --dart-define-from-file=env/prod.json
 ```
 
 ### 4. 改了資料庫的定義之後
@@ -205,7 +208,7 @@ flutter run --dart-define-from-file=env/prod.json
 `lib/data/database.dart` 改了之後,要重新產生 `database.g.dart`:
 
 ```bash
-dart run build_runner build
+fvm dart run build_runner build
 ```
 
 ---
@@ -213,24 +216,24 @@ dart run build_runner build
 ## Part B. 跑測試
 
 ```bash
-flutter analyze
-flutter test
-dart run tool/check_version.dart
+fvm flutter analyze
+fvm flutter test
+fvm dart run tool/check_version.dart
 ```
 
-- `flutter test` 目前 265 項,其中畫面測試(`test/ui/`)是每個主要畫面 × 三種螢幕 × 兩種字級。
+- `fvm flutter test` 目前 286 項,其中畫面測試(`test/ui/`)是每個主要畫面 × 三種螢幕 × 兩種字級。
 - `tool/check_version.dart` 檢查版本號:App 版本 x.y.z 的 x 在重大修改時升(匯出格式的版本另外記,不必等於 x),Android 版本碼 = x×1000 + y×10 + z。
 
 截圖比對(`test/ui/golden/`)的文字畫成方塊,在不同電腦上畫出來才會一樣。**故意改了版面時**,重新產生截圖、看過再提交:
 
 ```bash
-flutter test test/ui/golden --update-goldens
+fvm flutter test test/ui/golden --update-goldens
 ```
 
 想看實際的樣子(真字型,存到 `test/ui/layout/shots/`,不進 git):
 
 ```bash
-flutter test test/ui/layout --dart-define=MFF_SHOTS=true --update-goldens
+fvm flutter test test/ui/layout --dart-define=MFF_SHOTS=true --update-goldens
 ```
 
 ---
@@ -244,7 +247,7 @@ flutter test test/ui/layout --dart-define=MFF_SHOTS=true --update-goldens
 只想在自己的模擬器上試 release 版(不裝到別人手機)時,不需要正式的金鑰:
 
 ```bash
-MFF_ALLOW_DEBUG_SIGNING=1 flutter build apk --release
+MFF_ALLOW_DEBUG_SIGNING=1 fvm flutter build apk --release
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
 
@@ -444,19 +447,22 @@ tool/check_version.dart   version-number rule check
 
 ## Part A. Development Environment
 
-### 1. Install Flutter 3.50.1
+### 1. Install Flutter 3.50.1 (with FVM)
 
-This repo is pinned to Flutter **3.50.1** (`environment.flutter` in `pubspec.yaml`). Follow [Flutter's official macOS install guide](https://docs.flutter.dev/get-started/install/macos) to install it into `~/development/flutter`, switch to this version, then make the terminal find it:
+This repo is pinned to Flutter **3.50.1** (`.fvmrc`; `environment.flutter` in `pubspec.yaml` names the same version). Flutter is managed with [FVM](https://fvm.app/): each project uses the version in its own `.fvmrc`, so other Flutter projects on the same computer can use other versions without affecting each other. Every command below is written as `fvm flutter …` or `fvm dart …`.
+
+1. Install FVM (either way): `brew tap leoafarias/fvm && brew install fvm`, or, if you already have Dart, `dart pub global activate fvm` (this way needs `~/.pub-cache/bin` on your PATH).
+2. In this folder, download and activate the version in `.fvmrc`:
 
 ```bash
-echo 'export PATH="$HOME/development/flutter/bin:$PATH"' >> ~/.zshrc
+fvm install
 ```
 
-Close and reopen the terminal and run `flutter --version`; it should print 3.50.1.
+**Check**: `fvm flutter --version` prints 3.50.1. `.fvm/` is a shortcut FVM creates; it's already in `.gitignore`.
 
 ### 2. Install the Android SDK and an Emulator
 
-Install [Android Studio](https://developer.android.com/studio), use its **SDK Manager** to install the Android SDK, Platform Tools (which contain `adb`) and an emulator image, then run `flutter doctor` and follow its hints (e.g. `flutter doctor --android-licenses`).
+Install [Android Studio](https://developer.android.com/studio), use its **SDK Manager** to install the Android SDK, Platform Tools (which contain `adb`) and an emulator image, then run `fvm flutter doctor` and follow its hints (e.g. `fvm flutter doctor --android-licenses`).
 
 Open the emulator in a window with `-gpu host` (headless mode never draws the first frame):
 
@@ -468,14 +474,14 @@ Open the emulator in a window with `-gpu host` (headless mode never draws the fi
 
 ```bash
 cd mama-fufood-app
-flutter pub get
-flutter run
+fvm flutter pub get
+fvm flutter run
 ```
 
 The app started this way can log records on the phone, but sign-in, update checks and feedback show "還沒設定" (not configured yet). To connect to the backend and Google sign-in, create `env/prod.json` per Part D first, then:
 
 ```bash
-flutter run --dart-define-from-file=env/prod.json
+fvm flutter run --dart-define-from-file=env/prod.json
 ```
 
 ### 4. After Changing the Database Definition
@@ -483,7 +489,7 @@ flutter run --dart-define-from-file=env/prod.json
 After changing `lib/data/database.dart`, regenerate `database.g.dart`:
 
 ```bash
-dart run build_runner build
+fvm dart run build_runner build
 ```
 
 ---
@@ -491,24 +497,24 @@ dart run build_runner build
 ## Part B. Run the Tests
 
 ```bash
-flutter analyze
-flutter test
-dart run tool/check_version.dart
+fvm flutter analyze
+fvm flutter test
+fvm dart run tool/check_version.dart
 ```
 
-- `flutter test` currently runs 265 tests; the screen tests (`test/ui/`) cover every main screen × three screen sizes × two text sizes.
+- `fvm flutter test` currently runs 286 tests; the screen tests (`test/ui/`) cover every main screen × three screen sizes × two text sizes.
 - `tool/check_version.dart` checks the version number: the x in app version x.y.z goes up for major changes (the export format has its own version number, which need not equal x), and the Android version code = x×1000 + y×10 + z.
 
 The screenshot comparison (`test/ui/golden/`) draws text as boxes so that different machines render identically. **When you change a layout on purpose**, regenerate the screenshots and review them before committing:
 
 ```bash
-flutter test test/ui/golden --update-goldens
+fvm flutter test test/ui/golden --update-goldens
 ```
 
 To see what it really looks like (real fonts, saved to `test/ui/layout/shots/`, not in git):
 
 ```bash
-flutter test test/ui/layout --dart-define=MFF_SHOTS=true --update-goldens
+fvm flutter test test/ui/layout --dart-define=MFF_SHOTS=true --update-goldens
 ```
 
 ---
@@ -522,7 +528,7 @@ After a release build (`assembleRelease`, `bundleRelease`), `android/app/build.g
 To try a release build on your own emulator only (not on anyone else's phone), no real key is needed:
 
 ```bash
-MFF_ALLOW_DEBUG_SIGNING=1 flutter build apk --release
+MFF_ALLOW_DEBUG_SIGNING=1 fvm flutter build apk --release
 adb install -r build/app/outputs/flutter-apk/app-release.apk
 ```
 
